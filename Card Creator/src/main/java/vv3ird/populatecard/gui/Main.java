@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
@@ -11,12 +11,6 @@ import java.awt.Point;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-
-import de.rcblum.populatecard.data.Field;
-import de.rcblum.populatecard.data.FieldPackage;
-import de.rcblum.populatecard.data.Project;
-import de.rcblum.populatecard.data.ProjectManager;
-
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -47,6 +41,11 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.FieldPackage;
+import vv3ird.populatecard.data.Project;
+import vv3ird.populatecard.data.ProjectManager;
 
 import java.awt.Color;
 import java.awt.Dimension;

@@ -1,9 +1,9 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import javax.swing.Icon;
 import javax.swing.JLabel;
 
-import de.rcblum.populatecard.StatusListener;
+import vv3ird.populatecard.StatusListener;
 
 public class JStatusLabel extends JLabel implements StatusListener {
 

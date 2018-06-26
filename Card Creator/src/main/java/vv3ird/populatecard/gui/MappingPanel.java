@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import javax.swing.JPanel;
 import javax.swing.BoxLayout;

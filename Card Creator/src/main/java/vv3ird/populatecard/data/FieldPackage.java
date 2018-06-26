@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.data;
+package vv3ird.populatecard.data;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -22,7 +22,7 @@ import javax.imageio.ImageIO;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import de.rcblum.populatecard.data.Field.CardSide;
+import vv3ird.populatecard.data.Field.CardSide;
 
 public class FieldPackage {
 

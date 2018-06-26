@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -20,12 +20,12 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 
-import de.rcblum.populatecard.data.Field;
-import de.rcblum.populatecard.data.Field.CardSide;
-import de.rcblum.populatecard.data.Field.FieldType;
-import de.rcblum.populatecard.data.FieldPackage;
-import de.rcblum.populatecard.data.Project;
-import de.rcblum.populatecard.data.ProjectManager;
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.FieldPackage;
+import vv3ird.populatecard.data.Project;
+import vv3ird.populatecard.data.ProjectManager;
+import vv3ird.populatecard.data.Field.CardSide;
+import vv3ird.populatecard.data.Field.FieldType;
 
 import java.awt.GridBagLayout;
 import java.awt.Point;

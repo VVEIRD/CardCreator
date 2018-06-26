@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -11,11 +11,11 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.tree.DefaultTreeModel;
 
-import de.rcblum.populatecard.data.Field;
-import de.rcblum.populatecard.data.ProjectManager;
-import de.rcblum.populatecard.data.Field.CardSide;
-import de.rcblum.populatecard.data.Field.FieldType;
-import de.rcblum.populatecard.data.Project;
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.Project;
+import vv3ird.populatecard.data.ProjectManager;
+import vv3ird.populatecard.data.Field.CardSide;
+import vv3ird.populatecard.data.Field.FieldType;
 
 import java.awt.Component;
 import javax.swing.JSpinner;

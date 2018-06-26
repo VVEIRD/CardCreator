@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import java.awt.Color;
 import java.awt.Component;

@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.data;
+package vv3ird.populatecard.data;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -21,7 +21,7 @@ import javax.imageio.ImageIO;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import de.rcblum.populatecard.StatusListener;
+import vv3ird.populatecard.StatusListener;
 
 /**
  * Project that contains all necessary information to create cards<br>

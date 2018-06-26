@@ -1,4 +1,4 @@
-package de.rcblum.populatecard.gui;
+package vv3ird.populatecard.gui;
 
 import javax.swing.JPanel;
 import javax.swing.BoxLayout;
@@ -15,8 +15,8 @@ import java.util.Set;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
-import de.rcblum.populatecard.data.Field;
-import de.rcblum.populatecard.data.Project;
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.Project;
 
 import javax.swing.JList;
 
