@@ -89,6 +89,7 @@ public class ProjectManager {
 		Path projectFonts = Paths.get(projectRoot.toString(), "fonts");
 		Stream<Path> fontFiles = Files.list(projectFonts);
 		fontFiles.forEach(pth -> loadFont(p, pth));
+		fontFiles.close();
 		// Load CSV
 		Path projectCsv = Paths.get(projectRoot.toString(), "csv", rootFolderName + ".csv");
 		if (Files.exists(projectCsv)) {
@@ -162,10 +163,10 @@ public class ProjectManager {
 	 */
 	public static Project createEmptyProject(String projectName) throws IOException {
 		Path projectRoot = Paths.get("projects", projectName);
-		Path projectFilePath = Paths.get("projects", projectName, projectName + ".cmp");
-		Path projectFonts = Paths.get("projects", projectName, "fonts");
-		Path projectCsv = Paths.get("projects", projectName, "csv");
-		Path projectOutput = Paths.get("projects", projectName, "output");
+		Path projectFilePath = projectRoot.resolve(projectName + ".cmp");
+		Path projectFonts = projectRoot.resolve("fonts");
+		Path projectCsv = projectRoot.resolve("csv");
+		Path projectOutput = projectRoot.resolve("output");
 		Files.createDirectories(projectFonts);
 		Files.createDirectories(projectCsv);
 		Files.createDirectories(projectOutput);
