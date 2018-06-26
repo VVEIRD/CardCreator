@@ -20,10 +20,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 
+import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.FieldPackage;
 import vv3ird.populatecard.data.Project;
-import vv3ird.populatecard.data.ProjectManager;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.Field.FieldType;
 
@@ -63,6 +63,8 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 
 public class CardMapper extends JPanel {
+
+	private static final long serialVersionUID = 6755160427559608684L;
 
 	private JPanel contentPane;
 

@@ -11,9 +11,9 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.tree.DefaultTreeModel;
 
+import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Project;
-import vv3ird.populatecard.data.ProjectManager;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.Field.FieldType;
 

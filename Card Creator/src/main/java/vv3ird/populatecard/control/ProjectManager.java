@@ -1,4 +1,4 @@
-package vv3ird.populatecard.data;
+package vv3ird.populatecard.control;
 
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -30,6 +30,8 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import com.google.gson.reflect.TypeToken;
+
+import vv3ird.populatecard.data.Project;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

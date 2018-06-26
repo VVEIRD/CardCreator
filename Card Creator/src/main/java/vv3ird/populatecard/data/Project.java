@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import vv3ird.populatecard.StatusListener;
+import vv3ird.populatecard.control.ProjectManager;
 
 /**
  * Project that contains all necessary information to create cards<br>

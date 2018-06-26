@@ -42,16 +42,19 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import vv3ird.populatecard.control.ProjectManager;
+import vv3ird.populatecard.control.TaskScheduler;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.FieldPackage;
 import vv3ird.populatecard.data.Project;
-import vv3ird.populatecard.data.ProjectManager;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import javax.swing.border.BevelBorder;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
+import java.awt.Component;
+import javax.swing.Box;
 
 public class Main extends JFrame {
 
@@ -119,7 +122,8 @@ public class Main extends JFrame {
 	public Main() {
 		setTitle("Card Creator");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 325, 436);
+		setBounds(100, 100, 325, 450);
+		setResizable(false);
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -205,7 +209,7 @@ public class Main extends JFrame {
 		JMenu mnEdit = new JMenu("Edit");
 		menuBar.add(mnEdit);
 		
-		mntmMapFields = new JMenuItem("Field mappings");
+		mntmMapFields = new JMenuItem("Manage Fields");
 		mntmMapFields.setEnabled(false);
 		mntmMapFields.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -402,7 +406,7 @@ public class Main extends JFrame {
 		btnCreateCards.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(Main.this.currentProject != null) {
-					Thread t = new Thread(new Runnable() {
+					TaskScheduler.addTask("Create cards", new Runnable() {
 						@Override
 						public void run() {
 							try {
@@ -413,8 +417,7 @@ public class Main extends JFrame {
 								e1.printStackTrace();
 							}
 						}
-					});
-					t.start();
+					}, lblStatus);
 				}
 			}
 		});
@@ -479,13 +482,30 @@ public class Main extends JFrame {
 		
 		pnStatus = new JPanel();
 		pnStatus.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
-		pnStatus.setPreferredSize(new Dimension(this.getWidth(), 16));
+		pnStatus.setPreferredSize(new Dimension(this.getWidth(), 20));
 		contentPane.add(pnStatus, BorderLayout.SOUTH);
 		pnStatus.setLayout(new BoxLayout(pnStatus, BoxLayout.X_AXIS));
 		
 		lblStatus = new JStatusLabel("Status");
 		lblStatus.setHorizontalAlignment(SwingConstants.LEFT);
 		pnStatus.add(lblStatus);
+		
+		Component verticalStrut = Box.createVerticalStrut(20);
+		pnStatus.add(verticalStrut);
+		
+		Component horizontalGlue = Box.createHorizontalGlue();
+		pnStatus.add(horizontalGlue);
+		
+		JButton btnTasks = new JButton("Tasks");
+		btnTasks.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showTaskScheduler();
+			}
+		});
+		btnTasks.setPreferredSize(new Dimension(60, 20));
+		btnTasks.setSize(new Dimension(60, 20));
+		btnTasks.setMaximumSize(new Dimension(60, 20));
+		pnStatus.add(btnTasks);
 		populateRecentProjects();
 	}
 	
@@ -631,5 +651,17 @@ public class Main extends JFrame {
 		});
 		mnDeleteFont.add(dFont);
 		revalidate();
+	}
+
+	private void showTaskScheduler() {
+		JTaskScheduler scheduler = new JTaskScheduler();
+		JDialog dia = new JDialog(Main.this, "Task Scheduler", false);
+		dia.getContentPane().add(scheduler, BorderLayout.CENTER);
+		dia.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		Point p = Main.this.getLocation();
+		p = new Point((int)p.getX()+250, (int)p.getY()+100);
+		dia.setLocation(p);
+		dia.pack();
+		dia.setVisible(true);
 	}
 }
