@@ -1,35 +1,33 @@
 package vv3ird.populatecard.gui;
 
-import javax.swing.JPanel;
-import javax.swing.BoxLayout;
-import javax.swing.Box;
-import javax.swing.JButton;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Project;
 
-import javax.swing.JList;
+public class JCSVMapperPanel extends JPanel {
 
-public class CSVMapper extends JPanel {
+	private static final long serialVersionUID = -5869150781509703293L;
 
 	private Project project = null;
 	
-	private MappingPanel[] mappings = null;
+	private JMappingPanel[] mappings = null;
 	
 	/**
 	 * Create the panel.
 	 */
-	public CSVMapper(Project project) {
+	public JCSVMapperPanel(Project project) {
 		if (project.getCsvHeader() == null)
 			throw new IllegalArgumentException("The project must have CSV data loaded");
 		this.project = project;
@@ -41,7 +39,7 @@ public class CSVMapper extends JPanel {
 		}
 		csvColumnsFinal[0] = "";
 		List<Field> fields = this.project.getFp().getFields();
-		mappings = new MappingPanel[fields.size()];
+		mappings = new JMappingPanel[fields.size()];
 		
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		
@@ -72,7 +70,7 @@ public class CSVMapper extends JPanel {
 		pnMapping.setLayout(new BoxLayout(pnMapping, BoxLayout.Y_AXIS));
 		int i=0;
 		for (Field field : fields) {
-			MappingPanel mp = new MappingPanel(field.getName(), project.getCsvColumn(field.getName()), csvColumnsFinal);
+			JMappingPanel mp = new JMappingPanel(field.getName(), project.getCsvColumn(field.getName()), csvColumnsFinal);
 			mappings[i++] = mp;
 			pnMapping.add(mp);
 		}
@@ -89,7 +87,7 @@ public class CSVMapper extends JPanel {
 	
 	public Map<String, String> getMappings() {
 		Map<String, String> mapps = new HashMap<>();
-		for (MappingPanel mappingPanel : mappings) {
+		for (JMappingPanel mappingPanel : mappings) {
 			String fieldName = mappingPanel.getFieldName();
 			String csvColumnName = mappingPanel.getSelectedCsvColumn();
 			if(csvColumnName != null && !csvColumnName.isEmpty()) 

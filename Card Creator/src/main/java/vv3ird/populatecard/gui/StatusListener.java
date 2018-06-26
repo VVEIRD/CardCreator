@@ -1,4 +1,4 @@
-package vv3ird.populatecard;
+package vv3ird.populatecard.gui;
 
 public interface StatusListener {
 	

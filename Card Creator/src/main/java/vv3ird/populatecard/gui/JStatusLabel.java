@@ -3,8 +3,6 @@ package vv3ird.populatecard.gui;
 import javax.swing.Icon;
 import javax.swing.JLabel;
 
-import vv3ird.populatecard.StatusListener;
-
 public class JStatusLabel extends JLabel implements StatusListener {
 
 	/**

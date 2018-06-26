@@ -9,16 +9,16 @@ import java.awt.Dimension;
 import javax.swing.Box;
 import javax.swing.JComboBox;
 
-public class MappingPanel extends JPanel {
+public class JMappingPanel extends JPanel {
 	
+	private static final long serialVersionUID = 223879219036708760L;
+
 	private String fieldName = null;
 	
-	private String[] csvFields = null; 
 	private JComboBox<String> cbCsvFields;
 	
-	public MappingPanel(String fieldName, String csvField, String[] csvColumns) {
+	public JMappingPanel(String fieldName, String csvField, String[] csvColumns) {
 		this.fieldName = fieldName;
-		this.csvFields = csvColumns;
 		int selectedIndex = -1;
 		for (int i = 0; i < csvColumns.length&&selectedIndex<0; i++) {
 			if(csvColumns[i].equals(csvField) || csvColumns[i].equals(fieldName)) {
@@ -47,7 +47,7 @@ public class MappingPanel extends JPanel {
 		Component verticalStrut = Box.createVerticalStrut(24);
 		add(verticalStrut);
 		
-		cbCsvFields = new JComboBox(csvColumns);
+		cbCsvFields = new JComboBox<>(csvColumns);
 		cbCsvFields.setSelectedIndex(selectedIndex);
 		cbCsvFields.setPreferredSize(new Dimension(150, 20));
 		cbCsvFields.setSize(new Dimension(150, 20));

@@ -1,33 +1,29 @@
 package vv3ird.populatecard.gui;
 
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.JTextField;
-import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JCheckBox;
-import javax.swing.Box;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
-import javax.swing.tree.DefaultTreeModel;
-
-import vv3ird.populatecard.control.ProjectManager;
-import vv3ird.populatecard.data.Field;
-import vv3ird.populatecard.data.Project;
-import vv3ird.populatecard.data.Field.CardSide;
-import vv3ird.populatecard.data.Field.FieldType;
-
 import java.awt.Component;
-import javax.swing.JSpinner;
 import java.awt.Dimension;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
-public class FieldEditor extends JPanel {
+import vv3ird.populatecard.control.ProjectManager;
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.Field.CardSide;
+import vv3ird.populatecard.data.Field.FieldType;
+import vv3ird.populatecard.data.Project;
+
+public class JFieldEditorPanel extends JPanel {
+	private static final long serialVersionUID = 2838584356620026755L;
 	private JSpinner spinnerPointX;
 	private JSpinner spinnerPointY;
 	private JSpinner spinnerWidth;
@@ -45,7 +41,7 @@ public class FieldEditor extends JPanel {
 	/**
 	 * Create the panel.
 	 */
-	public FieldEditor(Field field, Project p) {
+	public JFieldEditorPanel(Field field, Project p) {
 		this.field = field;
 		this.p = p;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -164,7 +160,7 @@ public class FieldEditor extends JPanel {
 		
 		Component rigidArea_8 = Box.createRigidArea(new Dimension(5, 20));
 		horizontalBox_2.add(rigidArea_8);
-		cbCardSide = new JComboBox(sides);
+		cbCardSide = new JComboBox<>(sides);
 		cbCardSide.setSelectedItem(field.getSide());
 		horizontalBox_2.add(cbCardSide);
 		cbCardSide.setPreferredSize(new Dimension(120, 20));
@@ -188,7 +184,7 @@ public class FieldEditor extends JPanel {
 		Component rigidArea_9 = Box.createRigidArea(new Dimension(12, 20));
 		horizontalBox_3.add(rigidArea_9);
 		Field.FieldType[] types = Field.FieldType.values();
-		cbFieldType = new JComboBox(types);
+		cbFieldType = new JComboBox<>(types);
 		cbFieldType.setSelectedItem(field.getType());
 		cbFieldType.setAlignmentX(Component.LEFT_ALIGNMENT);
 		cbFieldType.setPreferredSize(new Dimension(120, 20));
@@ -213,7 +209,7 @@ public class FieldEditor extends JPanel {
 		Component rigidArea_10 = Box.createRigidArea(new Dimension(29, 20));
 		horizontalBox_4.add(rigidArea_10);
 		String[] fonts = getFonts();
-		cbFont = new JComboBox(fonts);
+		cbFont = new JComboBox<>(fonts);
 		cbFont.setPreferredSize(new Dimension(120, 20));
 		cbFont.setMaximumSize(new Dimension(120, 20));
 		cbFont.setAlignmentX(0.0f);

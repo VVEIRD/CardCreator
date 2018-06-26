@@ -16,7 +16,11 @@ import vv3ird.populatecard.control.Task;
 import vv3ird.populatecard.control.TaskScheduler;
 
 public class JTaskScheduler extends JPanel {
+	
+	private static final long serialVersionUID = 5463557819640787112L;
+	
 	private JLabel label;
+	
 	private JPanel pnQueuedTasks;
 
 	/**

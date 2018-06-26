@@ -21,8 +21,8 @@ import javax.imageio.ImageIO;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import vv3ird.populatecard.StatusListener;
 import vv3ird.populatecard.control.ProjectManager;
+import vv3ird.populatecard.gui.StatusListener;
 
 /**
  * Project that contains all necessary information to create cards<br>

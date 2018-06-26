@@ -1,6 +1,6 @@
 package vv3ird.populatecard.control;
 
-import vv3ird.populatecard.StatusListener;
+import vv3ird.populatecard.gui.StatusListener;
 
 public class Task implements StatusListener {
 	

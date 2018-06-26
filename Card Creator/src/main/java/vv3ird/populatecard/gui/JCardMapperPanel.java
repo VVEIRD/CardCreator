@@ -4,31 +4,16 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
-
-import vv3ird.populatecard.control.ProjectManager;
-import vv3ird.populatecard.data.Field;
-import vv3ird.populatecard.data.FieldPackage;
-import vv3ird.populatecard.data.Project;
-import vv3ird.populatecard.data.Field.CardSide;
-import vv3ird.populatecard.data.Field.FieldType;
-
-import java.awt.GridBagLayout;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -39,30 +24,34 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.swing.JScrollPane;
-import java.awt.GridBagConstraints;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
-
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JFileChooser;
-
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ActionEvent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
-import javax.swing.JSplitPane;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.SwingConstants;
-import javax.swing.event.TreeSelectionListener;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 
-public class CardMapper extends JPanel {
+import vv3ird.populatecard.control.ProjectManager;
+import vv3ird.populatecard.data.Field;
+import vv3ird.populatecard.data.Field.CardSide;
+import vv3ird.populatecard.data.FieldPackage;
+import vv3ird.populatecard.data.Project;
+
+public class JCardMapperPanel extends JPanel {
 
 	private static final long serialVersionUID = 6755160427559608684L;
 
@@ -96,7 +85,7 @@ public class CardMapper extends JPanel {
 	private Color rectColor = Color.GREEN;
 	private JScrollPane spBack;
 	private JTree treeFields;
-	private FieldEditor fieldEditior;
+	private JFieldEditorPanel fieldEditior;
 
 
 	/**
@@ -104,7 +93,7 @@ public class CardMapper extends JPanel {
 	 * 
 	 * @throws IOException
 	 */
-	public CardMapper(Project p) {
+	public JCardMapperPanel(Project p) {
 		this.p = p;
 		BufferedImage frontImage = p.getFp().getFrontImage();
 		BufferedImage rearImage = p.getFp().getRearImage();
@@ -186,7 +175,7 @@ public class CardMapper extends JPanel {
 
 					chooser.setDialogTitle("Choose a filename");
 					chooser.setFileFilter(new FileNameExtensionFilter("CardMapper Files", new String[] { "cm" }));
-					int res = chooser.showSaveDialog(CardMapper.this);
+					int res = chooser.showSaveDialog(JCardMapperPanel.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						File f = chooser.getSelectedFile();
 						FieldPackage fPackage = new FieldPackage(orgFront, orgRear);
@@ -322,7 +311,7 @@ public class CardMapper extends JPanel {
 		panel.add(horizontalBox_1);
 		
 		
-		fieldEditior = new FieldEditor(new Field("<none>", new Dimension(0, 0), new Dimension(10, 10), rectColor), this.p);
+		fieldEditior = new JFieldEditorPanel(new Field("<none>", new Dimension(0, 0), new Dimension(10, 10), rectColor), this.p);
 		horizontalBox_1.add(fieldEditior);
 		
 		Component horizontalGlue_2 = Box.createHorizontalGlue();
@@ -369,12 +358,12 @@ public class CardMapper extends JPanel {
 		JButton btnDeleteField = new JButton("Delete field");
 		btnDeleteField.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				boolean approve = JOptionPane.showConfirmDialog(CardMapper.this,
+				boolean approve = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
 						"Delete field " + fieldEditior.getFieldName() + "?", "Delete field",
 						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
 				if(approve) {
 					fieldEditior.resetField();
-					CardMapper.this.fields.remove(getFieldByName(fieldEditior.getFieldName()));
+					JCardMapperPanel.this.fields.remove(getFieldByName(fieldEditior.getFieldName()));
 					setImage(frontImage, rearImage);
 					populateFieldTree();
 				}
@@ -384,12 +373,12 @@ public class CardMapper extends JPanel {
 
 		this.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent evt) {
-				if (CardMapper.this.getWidth() > (b1Front.getWidth() < b1Rear.getWidth() ? b1Front.getWidth() : b1Rear.getWidth()))
-					CardMapper.this.setSize(new Dimension(
+				if (JCardMapperPanel.this.getWidth() > (b1Front.getWidth() < b1Rear.getWidth() ? b1Front.getWidth() : b1Rear.getWidth()))
+					JCardMapperPanel.this.setSize(new Dimension(
 							(b1Front.getWidth() < b1Rear.getWidth() ? b1Front.getWidth() : b1Rear.getWidth()),
-							CardMapper.this.getHeight()));
-				if (CardMapper.this.getHeight() > (b1Front.getHeight() < b1Rear.getHeight() ? b1Front.getHeight() : b1Rear.getHeight()))
-					CardMapper.this.setSize(new Dimension(CardMapper.this.getWidth(),
+							JCardMapperPanel.this.getHeight()));
+				if (JCardMapperPanel.this.getHeight() > (b1Front.getHeight() < b1Rear.getHeight() ? b1Front.getHeight() : b1Rear.getHeight()))
+					JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(),
 							(b1Front.getHeight() < b1Rear.getHeight() ? b1Front.getHeight() : b1Rear.getHeight())));
 			}
 		});
@@ -410,7 +399,7 @@ public class CardMapper extends JPanel {
 		} else {
 			System.out.println(side + " X|Y Point 2: " + x + "|" + y);
 			System.out.println();
-			String name = JOptionPane.showInputDialog(CardMapper.this, "Enter a name");
+			String name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Enter a name");
 			// Aborted
 			if (name == null)
 				return;
@@ -418,15 +407,15 @@ public class CardMapper extends JPanel {
 			boolean link = false;
 			while (checkNameForDuplicate(name) && !link || name.isEmpty()) {
 				if (name.isEmpty())
-					name = JOptionPane.showInputDialog(CardMapper.this, "Enter a valid name");
+					name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Enter a valid name");
 				else {
-					int approve = JOptionPane.showConfirmDialog(CardMapper.this,
+					int approve = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
 							"Name already taken, link this field to the existing?", "Choose an option",
 							JOptionPane.YES_NO_OPTION);
 					if (approve == JOptionPane.YES_OPTION)
 						link = true;
 					else
-						name = JOptionPane.showInputDialog(CardMapper.this, "Name already taken, enter a new name")
+						name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Name already taken, enter a new name")
 								.trim();
 				}
 				if (name == null)
@@ -440,8 +429,8 @@ public class CardMapper extends JPanel {
 //					Field.FieldType.values(), // Array of choices
 //					Field.FieldType.values()[0]); // Initial choice
 			Field newField = new Field(name, pos1, new Dimension(x, y), rectColor, side);
-			FieldEditor fe = new FieldEditor(newField, p);
-			boolean ok = JOptionPane.showConfirmDialog(CardMapper.this,
+			JFieldEditorPanel fe = new JFieldEditorPanel(newField, p);
+			boolean ok = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
                     fe,
                     "Create Field",
                     JOptionPane.OK_CANCEL_OPTION,
@@ -449,16 +438,16 @@ public class CardMapper extends JPanel {
 			if(ok) {
 				fe.getField();
 				if (link) {
-					Field field = CardMapper.this.getFieldByName(name);
+					Field field = JCardMapperPanel.this.getFieldByName(name);
 					if (field != null)
 						field.setLinkedField(newField);
 					else
-						CardMapper.this.fields.add(newField);
+						JCardMapperPanel.this.fields.add(newField);
 				} else
-					CardMapper.this.fields.add(newField);
+					JCardMapperPanel.this.fields.add(newField);
 				Graphics2D g = side == Field.CardSide.FRONT ? b1Front.createGraphics() : b1Rear.createGraphics();
 				g.setColor(rectColor);
-				newField.drawRect(g, ProjectManager.getFont(CardMapper.this.p, newField.getFont()));
+				newField.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, newField.getFont()));
 				g.dispose();
 				repaintImage(side == Field.CardSide.FRONT);
 			}
@@ -509,7 +498,7 @@ public class CardMapper extends JPanel {
 			g.drawImage(frontImage, 0, 0, null);
 			for (Field f : frontFields) {
 				g.setColor(f.getColor());
-				f.drawRect(g, ProjectManager.getFont(CardMapper.this.p, f.getFont()));
+				f.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, f.getFont()));
 			}
 			g.dispose();
 			g2.drawImage(b1Front, 0, 0, null);
@@ -524,10 +513,10 @@ public class CardMapper extends JPanel {
 			spFront.setSize(new Dimension(b1Front.getWidth(), b2Front.getHeight() < 600 ? b2Front.getHeight() : 600));
 			pnFront.setSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
 			// Adjust size
-			if (CardMapper.this.getWidth() > b1Front.getWidth())
-				CardMapper.this.setSize(new Dimension(b1Front.getWidth(), CardMapper.this.getHeight()));
-			if (CardMapper.this.getHeight() > b1Front.getHeight())
-				CardMapper.this.setSize(new Dimension(CardMapper.this.getWidth(), b1Front.getHeight()));
+			if (JCardMapperPanel.this.getWidth() > b1Front.getWidth())
+				JCardMapperPanel.this.setSize(new Dimension(b1Front.getWidth(), JCardMapperPanel.this.getHeight()));
+			if (JCardMapperPanel.this.getHeight() > b1Front.getHeight())
+				JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(), b1Front.getHeight()));
 		}
 		// Back
 		if (backImage != null) {
@@ -539,7 +528,7 @@ public class CardMapper extends JPanel {
 			g.drawImage(backImage, 0, 0, null);
 			for (Field f : backFields) {
 				g.setColor(f.getColor());
-				f.drawRect(g, ProjectManager.getFont(CardMapper.this.p, f.getFont()));
+				f.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, f.getFont()));
 			}
 			g.dispose();
 			g2.drawImage(b1Rear, 0, 0, null);
@@ -553,10 +542,10 @@ public class CardMapper extends JPanel {
 			spBack.setMaximumSize(new Dimension(b1Rear.getWidth(), b2Rear.getHeight() < 600 ? b2Rear.getHeight() : 600));
 			spBack.setSize(new Dimension(b1Rear.getWidth(), b2Rear.getHeight() < 600 ? b2Rear.getHeight() : 600));
 			pnBack.setSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			if (CardMapper.this.getWidth() > b1Rear.getWidth())
-				CardMapper.this.setSize(new Dimension(b1Rear.getWidth(), CardMapper.this.getHeight()));
-			if (CardMapper.this.getHeight() > b1Rear.getHeight())
-				CardMapper.this.setSize(new Dimension(CardMapper.this.getWidth(), b1Rear.getHeight()));
+			if (JCardMapperPanel.this.getWidth() > b1Rear.getWidth())
+				JCardMapperPanel.this.setSize(new Dimension(b1Rear.getWidth(), JCardMapperPanel.this.getHeight()));
+			if (JCardMapperPanel.this.getHeight() > b1Rear.getHeight())
+				JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(), b1Rear.getHeight()));
 		}
 		
 		revalidate();
