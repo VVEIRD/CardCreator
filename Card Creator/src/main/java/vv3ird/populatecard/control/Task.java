@@ -50,4 +50,16 @@ public class Task implements StatusListener {
 		this.status = status;
 	}
 
+	@Override
+	public String[] getLog() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void clearLog() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

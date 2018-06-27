@@ -60,8 +60,8 @@ public class Project {
 			gFront.setColor(Color.BLACK);
 			Graphics2D gRear = rear.createGraphics();
 			gRear.setColor(Color.BLACK);
+			listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
 			for (String fieldName : mappedFields) {
-				listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
 				Field field = fPackage.getFieldByName(fieldName);
 				int columnIndex = p.getCsvColumnIndex(fieldName);
 				if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {

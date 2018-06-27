@@ -224,6 +224,17 @@ public class ProjectManager {
 		project.removeFont(fontName);
 	}
 	
+	public static CSVParser openCsv(Path csvPath) throws IOException {
+		if(Files.exists(csvPath)) {
+			CSVFormat format = CSVFormat.newFormat(';').withQuote('\"').withRecordSeparator('\n').withFirstRecordAsHeader();
+			InputStream is = Files.newInputStream(csvPath);
+			Reader in = new InputStreamReader(is);
+			CSVParser parser = new CSVParser(in, format);
+			return parser;
+		}
+		return null;
+	}
+	
 	public static void importCsv(Project project, Path csvPath) throws IOException {
 		boolean csvValid=false;
 		if(Files.exists(csvPath)) {

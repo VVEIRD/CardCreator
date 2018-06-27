@@ -17,6 +17,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +44,8 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.apache.commons.csv.CSVParser;
+
 import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.control.TaskScheduler;
 import vv3ird.populatecard.data.Field;
@@ -55,6 +59,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JTextField;
 import java.awt.Component;
 import javax.swing.Box;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class JMain extends JFrame {
 
@@ -313,18 +319,33 @@ public class JMain extends JFrame {
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedCSV = chooser.getSelectedFile().toPath();
-						ProjectManager.importCsv(currentProject, selectedCSV);
-						lblStatus.setText("Successfully imported csv-file " + selectedCSV.getFileName().toString());
-						JCSVMapperPanel cm = new JCSVMapperPanel(JMain.this.currentProject);
+						CSVParser parser = ProjectManager.openCsv(selectedCSV);
+						JCSVMapperPanel cm = new JCSVMapperPanel(JMain.this.currentProject, parser);
 						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
 								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
-						if (ok) {
-							Map<String, String> mapping = cm.getMappings();
-							for (String field : mapping.keySet()) {
-								currentProject.addMapping(field, mapping.get(field));
+						parser.close();
+						// Import csv as a task so it wont interrupt running card creation process
+						Runnable payload = new Runnable() {
+							@Override
+							public void run() {
+								try {
+									ProjectManager.importCsv(currentProject, selectedCSV);
+									lblStatus.setText("Successfully imported csv-file " + selectedCSV.getFileName().toString());
+									if (ok) {
+										Map<String, String> mapping = cm.getMappings();
+										for (String field : mapping.keySet()) {
+											currentProject.addMapping(field, mapping.get(field));
+										}
+									}
+									btnCreateCards.setEnabled(true);
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 							}
-						}
-						btnCreateCards.setEnabled(true);
+						};
+						TaskScheduler.addTask("Import CSV data", payload, lblStatus);
+						
 					}
 				} catch (Exception e2) {
 					e2.printStackTrace();
@@ -487,6 +508,20 @@ public class JMain extends JFrame {
 		pnStatus.setLayout(new BoxLayout(pnStatus, BoxLayout.X_AXIS));
 
 		lblStatus = new JStatusLabel("Status");
+		lblStatus.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				JLogPanel jlog = new JLogPanel(lblStatus);
+				JDialog dia = new JDialog(JMain.this, "Log", false);
+				dia.getContentPane().add(jlog, BorderLayout.CENTER);
+				dia.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+				Point p = JMain.this.getLocation();
+				p = new Point((int) p.getX() + 250, (int) p.getY() + 100);
+				dia.setLocation(p);
+				dia.pack();
+				dia.setVisible(true);
+			}
+		});
 		lblStatus.setHorizontalAlignment(SwingConstants.LEFT);
 		pnStatus.add(lblStatus);
 
@@ -638,15 +673,20 @@ public class JMain extends JFrame {
 						"Delete font " + ((JMenuItem) e.getSource()).getText() + "?", "Delete Font",
 						JOptionPane.YES_NO_OPTION);
 				if (answer == JOptionPane.YES_OPTION) {
-					try {
-						ProjectManager.deleteFont(JMain.this.currentProject, ((JMenuItem) e.getSource()).getText());
-						lblStatus.setText("Font " + ((JMenuItem) e.getSource()).getText() + " successfully deleted");
-						mnDeleteFont.remove(((JMenuItem) e.getSource()));
-					} catch (IOException e1) {
-						lblStatus.setText("Error deleting font " + ((JMenuItem) e.getSource()).getText() + ": "
-								+ e1.getMessage());
-						e1.printStackTrace();
-					}
+					Runnable payload = new Runnable() {
+						@Override
+						public void run() {
+							try {
+								ProjectManager.deleteFont(JMain.this.currentProject, ((JMenuItem) e.getSource()).getText());
+								lblStatus.setText("Font " + ((JMenuItem) e.getSource()).getText() + " successfully deleted");
+								mnDeleteFont.remove(((JMenuItem) e.getSource()));
+							} catch (IOException e1) {
+								lblStatus.setText("Error deleting font " + ((JMenuItem) e.getSource()).getText() + ": " + e1.getMessage());
+								e1.printStackTrace();
+							} 
+						}
+					};
+					TaskScheduler.addTask("Delete Font " + ((JMenuItem) e.getSource()).getText(), payload, lblStatus);
 				}
 			}
 		});
@@ -663,6 +703,30 @@ public class JMain extends JFrame {
 		p = new Point((int) p.getX() + 250, (int) p.getY() + 100);
 		dia.setLocation(p);
 		dia.pack();
+		dia.addWindowListener(new WindowListener() {
+			@Override
+			public void windowOpened(WindowEvent e) {}
+			
+			@Override
+			public void windowIconified(WindowEvent e) {}
+			
+			@Override
+			public void windowDeiconified(WindowEvent e) {}
+			
+			@Override
+			public void windowDeactivated(WindowEvent e) {}
+			
+			@Override
+			public void windowClosing(WindowEvent e) {}
+			
+			@Override
+			public void windowClosed(WindowEvent e) {
+				scheduler.stopDaemon();
+			}
+			
+			@Override
+			public void windowActivated(WindowEvent e) {}
+		});
 		dia.setVisible(true);
 	}
 }

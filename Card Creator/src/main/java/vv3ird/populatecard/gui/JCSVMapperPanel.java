@@ -13,6 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import org.apache.commons.csv.CSVParser;
+
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Project;
 
@@ -22,16 +24,19 @@ public class JCSVMapperPanel extends JPanel {
 
 	private Project project = null;
 	
+	private CSVParser parser = null;
+	
 	private JMappingPanel[] mappings = null;
 	
 	/**
 	 * Create the panel.
 	 */
-	public JCSVMapperPanel(Project project) {
+	public JCSVMapperPanel(Project project, CSVParser parser) {
 		if (project.getCsvHeader() == null)
 			throw new IllegalArgumentException("The project must have CSV data loaded");
 		this.project = project;
-		Set<String> ks = project.getCsvHeader().keySet();
+		this.parser = parser;
+		Set<String> ks = parser.getHeaderMap().keySet();
 		String[] csvColumns = ks.toArray(new String[0]);
 		String[] csvColumnsFinal = new String[csvColumns.length+1];
 		for (int i = 0; i < csvColumns.length; i++) {
