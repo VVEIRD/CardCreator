@@ -3,27 +3,39 @@ package vv3ird.populatecard.control;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
+import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
 import com.google.gson.Gson;
@@ -164,6 +176,8 @@ public class ProjectManager {
 	public static Project createEmptyProject(String projectName) throws IOException {
 		Path projectRoot = Paths.get("projects", projectName);
 		Path projectFilePath = projectRoot.resolve(projectName + ".cmp");
+		if (Files.exists(projectFilePath)) 
+			throw new IOException("Project \"" + projectName + "\" already exists");
 		Path projectFonts = projectRoot.resolve("fonts");
 		Path projectCsv = projectRoot.resolve("csv");
 		Path projectOutput = projectRoot.resolve("output");
@@ -255,7 +269,7 @@ public class ProjectManager {
 					System.out.println("Row: " + (row+1) + " CSV columns: " + record.size());
 					csvData[row] = new String[record.size()];
 					for (int i = 0; i < csvData[row].length; i++) {
-						csvData[row][i] = record.get(i);
+						csvData[row][i] = processMediaEntry(record.get(i));
 						System.out.println("\tColumn " + i + ": " + record.get(i) + ", ");
 					}
 					System.out.println();
@@ -266,13 +280,57 @@ public class ProjectManager {
 				csvValid=true;
 			}
 			if(csvValid) {
-				try (InputStream fIn = Files.newInputStream(csvPath)) {
+				CSVPrinter csvPrinter = null;
+				try (InputStream is = Files.newInputStream(csvPath);
+						Reader in = new InputStreamReader(is);
+						CSVParser parser = new CSVParser(in, format);) {
 					Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", project.getName() + ".csv");
-					Files.copy(csvPath, projectCsv, StandardCopyOption.REPLACE_EXISTING);
+					BufferedWriter br = Files.newBufferedWriter(projectCsv, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+					String[] header = new String[parser.getHeaderMap().size()];
+					Map<String, Integer> headerMap = parser.getHeaderMap();
+					for (String head : headerMap.keySet()) {
+						header[headerMap.get(head)] = head;
+					}
+					csvPrinter = new CSVPrinter(br, format.withHeader(header));
+					csvPrinter.printRecord(Arrays.asList(header));
+					List<CSVRecord> records = parser.getRecords();
+					for (CSVRecord csvRecord : records) {
+						List<String> record = new ArrayList<>(records.size());
+						for(int i=0; i<csvRecord.size();i++) {
+							String entry = csvRecord.get(i);
+							System.out.println(entry);
+							entry = processMediaEntry(entry);
+							System.out.println(entry);
+							record.add(entry);
+						}
+						csvPrinter.printRecord(record);
+					}
+//					Files.copy(csvPath, projectCsv, StandardCopyOption.REPLACE_EXISTING);
+				}
+				finally {
+					if(csvPrinter != null)
+						csvPrinter.close();
 				}
 			}
 		}
 	}
+
+	private static String processMediaEntry(String entry) { 
+		while(entry.contains("-img:") && entry.substring(entry.indexOf("-img:")).contains(":img-")) {
+			String pathToImg = entry.substring(entry.indexOf("-img:")+5, entry.indexOf(":img-"));
+			try {
+				BufferedImage img = ImageIO.read(new File(pathToImg));
+				String base64 = encodeImageToBase64(img);
+				entry = entry.substring(0, entry.indexOf("-img:")) + "-imgb:" + base64 + ":imgb-"  + entry.substring(entry.indexOf(":img-")+5);
+			} catch (IOException e) {
+				// Image cannot be loaded, remove reference
+				entry = entry.substring(0, entry.indexOf("-img:")) + entry.substring(entry.indexOf(":img-")+5); 
+				e.printStackTrace();
+			}
+		}
+		return entry;
+	}
+
 
 	public static boolean checkForDuplicates(String projectName) {
 		Path projectFilePath = Paths.get("projects", projectName, projectName + ".cmp");
@@ -290,6 +348,30 @@ public class ProjectManager {
 			font = Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAllFonts()).stream().filter(f -> f.getFamily().equalsIgnoreCase(fontName)).findFirst().orElse(null);
 		}
 		return font != null ? font : new JLabel().getFont();
+	}
+	
+	public static String encodeImageToBase64(BufferedImage img) {
+		String base64 = null;
+		try {
+			final ByteArrayOutputStream osFront = new ByteArrayOutputStream();
+			ImageIO.write(img, "PNG", osFront);
+			base64 = Base64.getEncoder().encodeToString(osFront.toByteArray());
+		} catch (final IOException ioe) {
+			throw new UncheckedIOException(ioe);
+		}
+		return base64;
+	}
+	
+	public static BufferedImage decodeImageFromBase64(String base64) {
+		BufferedImage img = null;
+		try {
+			byte[] bFrontImg = Base64.getDecoder().decode(base64);
+			ByteArrayInputStream isFront = new ByteArrayInputStream(bFrontImg);
+			img = ImageIO.read(isFront);
+		} catch (final IOException ioe) {
+			throw new UncheckedIOException(ioe);
+		}
+		return img;
 	}
 
 }

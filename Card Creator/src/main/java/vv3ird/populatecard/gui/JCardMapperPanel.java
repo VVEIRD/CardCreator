@@ -328,6 +328,7 @@ public class JCardMapperPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				fieldEditior.getField();
 				treeFields.repaint();
+				setImage(orgFront, orgRear);
 			}
 		});
 		

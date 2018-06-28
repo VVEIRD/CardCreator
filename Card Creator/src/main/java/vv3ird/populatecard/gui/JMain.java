@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Insets;
 import java.awt.Point;
 
 import javax.swing.JFrame;
@@ -46,6 +47,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.commons.csv.CSVParser;
 
+import vv3ird.populatecard.CardCreator;
 import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.control.TaskScheduler;
 import vv3ird.populatecard.data.Field;
@@ -58,6 +60,8 @@ import javax.swing.border.BevelBorder;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
 import java.awt.Component;
+import java.awt.Desktop;
+
 import javax.swing.Box;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -70,7 +74,7 @@ public class JMain extends JFrame {
 	private static final long serialVersionUID = 8050980040476237624L;
 	private JPanel contentPane;
 	private JMenu mnRecentProjects;
-	protected Project currentProject = null;
+
 	private JMenu mnDeleteFont;
 	private JMenu mnFonts;
 
@@ -88,34 +92,6 @@ public class JMain extends JFrame {
 	private JTextField tfFileNameTemplate;
 	private JButton btnI;
 	private JButton btnCreateCards;
-
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		try {
-			// Set cross-platform Java L&F (also called "Metal")
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (UnsupportedLookAndFeelException e) {
-			// handle exception
-		} catch (ClassNotFoundException e) {
-			// handle exception
-		} catch (InstantiationException e) {
-			// handle exception
-		} catch (IllegalAccessException e) {
-			// handle exception
-		}
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					JMain frame = new JMain();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
 
 	/**
 	 * Create the frame.
@@ -146,8 +122,8 @@ public class JMain extends JFrame {
 					ex = ProjectManager.checkForDuplicates(name);
 				} while (ex);
 				try {
-					JMain.this.currentProject = ProjectManager.createEmptyProject(name);
-					JMain.this.setTitle("Create Cards: " + JMain.this.currentProject.getName());
+					CardCreator.createNewProject(name);
+					JMain.this.setTitle("Create Cards: " + CardCreator.getCurrentProjecttName());
 					JMain.this.btnLoadFrontSide.setEnabled(true);
 					JMain.this.btnLoadBackSide.setEnabled(true);
 					populateRecentProjects();
@@ -188,11 +164,11 @@ public class JMain extends JFrame {
 		JMenuItem mntmSaveProject = new JMenuItem("Save project");
 		mntmSaveProject.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if (JMain.this.currentProject != null)
-					JMain.this.currentProject.setFileNameTemplate(JMain.this.tfFileNameTemplate.getText().trim());
+				if (CardCreator.hasCurrentProject())
+					CardCreator.setFileNameTemplate(JMain.this.tfFileNameTemplate.getText().trim());
 				try {
 					lblStatus.setText("Saving project file...");
-					ProjectManager.saveProject(JMain.this.currentProject);
+					CardCreator.save();
 					lblStatus.setText("Project file saved");
 					populateRecentProjects();
 				} catch (IOException e) {
@@ -217,14 +193,13 @@ public class JMain extends JFrame {
 		mntmMapFields.setEnabled(false);
 		mntmMapFields.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JCardMapperPanel cm = new JCardMapperPanel(JMain.this.currentProject);
+				JCardMapperPanel cm = new JCardMapperPanel(CardCreator.getCurrentProject());
 				boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map Fields", JOptionPane.OK_CANCEL_OPTION,
 						JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 				if (ok) {
 					List<Field> fields = cm.getFields();
-					if (fields != null) {
-						JMain.this.currentProject.getFp().clearFields();
-						JMain.this.currentProject.getFp().addFields(fields);
+					if (fields != null && CardCreator.hasCurrentProject()) {
+						CardCreator.setFields(fields); 
 					}
 				}
 			}
@@ -253,7 +228,7 @@ public class JMain extends JFrame {
 								"OVerwrite existing fields and images?", "Import CM File",
 								JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
 						if (overwrite) {
-							JMain.this.currentProject.setFp(fp);
+							CardCreator.setFieldPackage(fp);
 							loadFrontImage(fp.getFrontImage());
 							loadRearImage(fp.getRearImage());
 							revalidate();
@@ -320,7 +295,7 @@ public class JMain extends JFrame {
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedCSV = chooser.getSelectedFile().toPath();
 						CSVParser parser = ProjectManager.openCsv(selectedCSV);
-						JCSVMapperPanel cm = new JCSVMapperPanel(JMain.this.currentProject, parser);
+						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getCurrentProject(), parser);
 						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
 								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 						parser.close();
@@ -329,17 +304,17 @@ public class JMain extends JFrame {
 							@Override
 							public void run() {
 								try {
-									ProjectManager.importCsv(currentProject, selectedCSV);
+									CardCreator.importCsv(selectedCSV);
 									lblStatus.setText("Successfully imported csv-file " + selectedCSV.getFileName().toString());
 									if (ok) {
 										Map<String, String> mapping = cm.getMappings();
 										for (String field : mapping.keySet()) {
-											currentProject.addMapping(field, mapping.get(field));
+											CardCreator.addMapping(field, mapping.get(field));
 										}
 									}
 									btnCreateCards.setEnabled(true);
 								} catch (IOException e) {
-									// TODO Auto-generated catch block
+									lblStatus.setText("An Error occured while importing the csv-file " + selectedCSV.getFileName().toString());
 									e.printStackTrace();
 								}
 							}
@@ -381,10 +356,10 @@ public class JMain extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 				BufferedImage img = chooseImage();
 				if (img != null) {
-					boolean delete = JOptionPane.showConfirmDialog(JMain.this,
+					boolean deleteFields = JOptionPane.showConfirmDialog(JMain.this,
 							"Delete existing fields for the front side?", "Delete Fields",
 							JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
-					JMain.this.currentProject.getFp().setFrontImage(img, delete);
+					CardCreator.setFrontImage(img, deleteFields);
 					loadFrontImage(img);
 					System.out.println("Image Loaded");
 				}
@@ -411,7 +386,7 @@ public class JMain extends JFrame {
 					boolean delete = JOptionPane.showConfirmDialog(JMain.this,
 							"Delete existing fields for the rear side?", "Delete Fields",
 							JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
-					JMain.this.currentProject.getFp().setRearImage(img, delete);
+					CardCreator.setRearImage(img, delete);
 					loadRearImage(img);
 					System.out.println("Back Image Loaded");
 				}
@@ -424,12 +399,13 @@ public class JMain extends JFrame {
 		btnCreateCards = new JButton("Create Cards");
 		btnCreateCards.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (JMain.this.currentProject != null) {
+				if (CardCreator.hasCurrentProject()) {
 					TaskScheduler.addTask("Create cards", new Runnable() {
 						@Override
 						public void run() {
 							try {
-								Project.drawCards(JMain.this.currentProject, lblStatus);
+								CardCreator.drawCards(lblStatus);
+								Desktop.getDesktop().open(CardCreator.getOutputFolder().toFile());
 								lblStatus.setText("Drawing cards finished");
 							} catch (IOException e1) {
 								lblStatus.setText("Error drawing cards: " + e1.getMessage());
@@ -459,9 +435,9 @@ public class JMain extends JFrame {
 				fileOptions.add("Internal Variables");
 				fileOptions.add(" {no} - card number");
 				fileOptions.add(" {side} - card side (front|back)");
-				if (JMain.this.currentProject.getCsvHeader() != null) {
+				if (CardCreator.getCsvHeader() != null) {
 					fileOptions.add("Fields from the CSV:");
-					fileOptions.addAll(JMain.this.currentProject.getCsvHeader().keySet().stream()
+					fileOptions.addAll(CardCreator.getCsvHeader().keySet().stream()
 							.map(s -> " {" + s + "}").collect(Collectors.toList()));
 				}
 				JPanel info = new JPanel();
@@ -532,6 +508,7 @@ public class JMain extends JFrame {
 		pnStatus.add(horizontalGlue);
 
 		JButton btnTasks = new JButton("Tasks");
+		btnTasks.setMargin(new Insets(2, 2, 2, 2));
 		btnTasks.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showTaskScheduler();
@@ -621,11 +598,11 @@ public class JMain extends JFrame {
 	}
 
 	private void openProject(String selectedProject) throws IOException {
-		JMain.this.currentProject = ProjectManager.openProject(selectedProject);
-		JMain.this.setTitle("Create Cards: " + JMain.this.currentProject.getName());
-		JMain.this.loadFrontImage(JMain.this.currentProject.getFp().getFrontImage());
-		JMain.this.loadRearImage(JMain.this.currentProject.getFp().getRearImage());
-		JMain.this.tfFileNameTemplate.setText(JMain.this.currentProject.getFileNameTemplate());
+		CardCreator.openProject(selectedProject);
+		JMain.this.setTitle("Create Cards: " + CardCreator.getProjectName());
+		JMain.this.loadFrontImage(CardCreator.getFrontImage());
+		JMain.this.loadRearImage(CardCreator.getRearImage());
+		JMain.this.tfFileNameTemplate.setText(CardCreator.getFileNameTemplate());
 		JMain.this.btnLoadFrontSide.setEnabled(true);
 		JMain.this.btnLoadBackSide.setEnabled(true);
 		JMain.this.mntmImportCmFile.setEnabled(true);
@@ -633,7 +610,7 @@ public class JMain extends JFrame {
 		JMain.this.mntmImportFont.setEnabled(true);
 		JMain.this.tfFileNameTemplate.setEnabled(true);
 		JMain.this.btnI.setEnabled(true);
-		if (JMain.this.currentProject.getCsvHeader() != null)
+		if (CardCreator.getCsvHeader() != null)
 			JMain.this.btnCreateCards.setEnabled(true);
 		populateDeleteFontMenu();
 		lblStatus.setText("Project opened");
@@ -642,15 +619,15 @@ public class JMain extends JFrame {
 	}
 
 	private String importFont(String selectedFont) throws IOException, FontFormatException {
-		String fontName = ProjectManager.importFont(JMain.this.currentProject, Paths.get(selectedFont));
+		String fontName = CardCreator.addFont(Paths.get(selectedFont));
 		populateDeleteFontMenu(fontName);
 		return fontName;
 	}
 
 	private void populateDeleteFontMenu() {
 		mnDeleteFont.removeAll();
-		if (JMain.this.currentProject != null) {
-			Map<String, Font> fonts = JMain.this.currentProject.getFonts();
+		if (CardCreator.hasCurrentProject()) {
+			Map<String, Font> fonts = CardCreator.getFonts();
 			for (String fontName : fonts.keySet()) {
 				populateDeleteFontMenu(fontName);
 			}
@@ -677,7 +654,7 @@ public class JMain extends JFrame {
 						@Override
 						public void run() {
 							try {
-								ProjectManager.deleteFont(JMain.this.currentProject, ((JMenuItem) e.getSource()).getText());
+								CardCreator.removeFont(((JMenuItem) e.getSource()).getText());
 								lblStatus.setText("Font " + ((JMenuItem) e.getSource()).getText() + " successfully deleted");
 								mnDeleteFont.remove(((JMenuItem) e.getSource()));
 							} catch (IOException e1) {

@@ -36,65 +36,6 @@ import vv3ird.populatecard.gui.StatusListener;
 public class Project {
 	
 	/**
-	 * Draws the cards of a given project. Prerequisites are that a csv exists, thats the fields are mapped to csv columns.
-	 * @param p				Project the cards should be created for 
-	 * @param listener		Listener for updates on creation process
-	 * @throws IOException	whenever an IO error occures, the creation will be aborted
-	 */
-	public static void drawCards(Project p, StatusListener listener) throws IOException {
-		Path output = p.getProjectRoot().resolve("output");
-		if (!Files.exists(output)) {
-			Files.createDirectories(output);
-		}
-		FieldPackage fPackage = p.getFp();
-		List<String> mappedFields = p.getMappedFields();
-		String[][] csvData = p.getCsvData();
-		int cardNo = 1;
-		listener.setText("Drawing cards (0/" + csvData.length +")");
-		for (String[] csvEntry : csvData) {
-			String filenameFront = new String(p.fileNameTemplate);
-			String filenameRear = new String(p.fileNameTemplate);
-			BufferedImage front = fPackage.getFrontImageCopy();
-			BufferedImage rear = fPackage.getRearImageCopy();
-			Graphics2D gFront = front.createGraphics();
-			gFront.setColor(Color.BLACK);
-			Graphics2D gRear = rear.createGraphics();
-			gRear.setColor(Color.BLACK);
-			listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
-			for (String fieldName : mappedFields) {
-				Field field = fPackage.getFieldByName(fieldName);
-				int columnIndex = p.getCsvColumnIndex(fieldName);
-				if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {
-					Font font = ProjectManager.getFont(p, field.getFont());
-					String content = csvEntry[columnIndex];
-					field.drawContent(gFront, gRear, content, font);
-					filenameFront = filenameFront.replace("{" + p.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
-					filenameRear = filenameRear.replace("{" + p.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
-				}
-			}
-			gFront.dispose();
-			gRear.dispose();
-			filenameFront = filenameFront.replace("{no}", String.valueOf(cardNo));
-			if (filenameFront.contains("{side}")) {
-				filenameFront = filenameFront.replace("{side}", "front");
-				filenameRear = filenameRear.replace("{no}", String.valueOf(cardNo));
-				filenameRear = filenameRear.replace("{side}", "rear");
-			}
-			else {
-				filenameRear = filenameRear.replace("{no}", String.valueOf(++cardNo));
-			}
-			cardNo++;
-			if (!filenameRear.toLowerCase().endsWith(".png"))
-				filenameRear = filenameRear + ".png";
-			if (!filenameFront.toLowerCase().endsWith(".png"))
-				filenameFront = filenameFront + ".png";
-			ImageIO.write(front, "PNG", output.resolve(filenameFront).toFile());
-			ImageIO.write(rear, "PNG", output.resolve(filenameRear).toFile());
-		}
-		
-	}
-	
-	/**
 	 * Loads a project from a given path
 	 * @param path	Project file to be loaded
 	 * @return The project object

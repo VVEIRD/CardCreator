@@ -6,8 +6,10 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -15,8 +17,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import vv3ird.populatecard.control.ProjectManager;
+
 public class Field {
 	
+	private static final String TAB_SPACING = ".....";
+
 	private String name = null;
 
 	private Color color;
@@ -227,7 +233,6 @@ public class Field {
 	}
 
 	public void drawContent(Graphics2D gFront, Graphics2D gRear, String text, Font font) {
-		//System.out.println("New String: " + text);
 		List<String> paragraphs = splitIntoParagraphs(text, "-n-");
 		drawParagraphs(gFront, gRear, paragraphs, font);
 		
@@ -246,13 +251,14 @@ public class Field {
 		FontMetrics metrics = g.getFontMetrics(font);
 		int width = this.rect.width;
 		int lineHeight = metrics.getHeight();
-		List<String> lines = new LinkedList<>();
+		List<String> drawnLines = new LinkedList<>();
 		List<String> drawnParagraphs = new LinkedList<>();
+		int imageHeightOffset = 0;
 		for (String paragraph : paragraphs) {
 			// Prepare paragraph to be drawn on surface
 			String textToDraw = paragraph;
 			if (resizeText) {
-				while (metrics.stringWidth(textToDraw.replace("\t", "....")) > width) {
+				while (metrics.stringWidth(textToDraw.replace("\t", TAB_SPACING)) > width) {
 					font = font.deriveFont(style, font.getSize()-1);
 					g.setFont(font);
 					metrics = g.getFontMetrics(font);
@@ -260,43 +266,43 @@ public class Field {
 				}
 					
 			}
+			List<String> lines = new LinkedList<>();
 			String[] arr = textToDraw.split(" ");
 			String line = "";
 			int lineCount = 0;
-			int tabLength = metrics.stringWidth("....");
-			System.out.println(" FIND LINES:");
+			int tabLength = metrics.stringWidth(TAB_SPACING);
 			// Split paragraph into lines depending on Field width
 			for (int i = 0; i < arr.length; i++) {
-				//System.out.println("  WORD: " + arr[i]);
-				if (metrics.stringWidth((line + " " + arr[i]).substring(1).replace("\t", "....")) < width) {
-					line += " " + arr[i];
+				if (metrics.stringWidth((line + (!line.isEmpty() ? " " : "" )  + arr[i]).replace("\t", TAB_SPACING).replace("-$-", "")) < width) {
+					line += (!line.isEmpty() ? " " : "" ) + arr[i];
 				} else {
-					lines.add(line.charAt(0) == ' ' ? line.substring(1) : line);
-					System.out.println("  LINE NO " + (lineCount++) + ": \"" + (line.charAt(0) == ' ' ? line.substring(1) : line) + "\"");
-					line = " " + arr[i];
+					if(!line.isEmpty())
+						lines.add(line.charAt(0) == ' ' ? line.substring(1) : line);
+					line = (!line.isEmpty() ? " " : "" ) + arr[i];
 				}
 			}
 			if (!line.isEmpty()) {
 				lines.add(line.charAt(0) == ' ' ? line.substring(1) : line);
-				System.out.println("  LINE NO " + (lineCount++) + ": \"" + (line.charAt(0) == ' ' ? line.substring(1) : line) + "\"");
 			}
 			drawnParagraphs.add(paragraph);
-			List<String> drawnLines = new LinkedList<>();
 			// Draw lines on surface, continue overspilling text onto linked fields if possible.
-			int y = metrics.getAscent() + 2;
+			int y = metrics.getAscent() + 2 + (lineHeight * drawnLines.size());
 			if (this.verticalAlignment == FieldType.TEXT_CENTER) {
 				y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent() + 2;
-				if (lines.size() > 1)
-					y = y - ((lineHeight * (lines.size() - 1) / 2));
+				if (drawnLines.size() > 1)
+					y = y - ((lineHeight * (drawnLines.size() - 1) / 2));
 				if (y<0)
 					y = rect.y;
 			}
 			// Determine the X coordinate for the text
-			//System.out.println(lineHeight);
 			// Determine the Y coordinate for the text (note we add the ascent, as in java
 			// 2d 0 is top of the screen)
 			// int y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
 			for (String l : lines) {
+				String orgLine = l;
+				boolean endOfParagraph = l.endsWith("-$-");
+				if(endOfParagraph)
+					l = l.substring(0, l.lastIndexOf("-$-"));
 				String[] words = l.split(" ");
 				// set linestart depending on set text alignment, default is left aligned
 				int lineStart = 0;
@@ -306,34 +312,52 @@ public class Field {
 					lineStart = (rect.width - metrics.stringWidth(l));
 				int spacing = metrics.stringWidth(" ");
 				if (this.type == Field.FieldType.TEXT_BLOCK) {
-					int wordsLength = metrics.stringWidth(Arrays.asList(words).stream().collect(Collectors.joining()).replace("\t", "...."));
+					int wordsLength = metrics.stringWidth(Arrays.asList(words).stream().collect(Collectors.joining()).replace("\t", TAB_SPACING));
 					spacing = (rect.width-wordsLength)/(words.length >1 ? words.length-1 : words.length);
-					if (wordsLength + metrics.stringWidth(" ")*words.length < rect.width*0.60f)
+					if (wordsLength + metrics.stringWidth(" ")*words.length < rect.width*0.60f || endOfParagraph)
 						spacing = metrics.stringWidth(" ");
 				}
-				// Draw word for word with the correct spacing
-				int wordsWidth = 0;
-				for (int i = 0; i < words.length; i++) {
-					g.drawString(words[i].replace("\t", ""), (words[i].contains("\t") ? tabLength : 0) + rect.x + lineStart + wordsWidth + (i*spacing), rect.y + y);
-					wordsWidth += metrics.stringWidth(words[i].replace("\t", "")) + (words[i].contains("\t") ? tabLength : 0);
+				if(l.startsWith("-imgb:") && l.endsWith(":imgb-")) {
+					BufferedImage bimg = ProjectManager.decodeImageFromBase64(l.substring(6, l.lastIndexOf(":imgb-")));
+					if(bimg != null) {
+						int height = (int) ((((float)rect.getWidth())/bimg.getWidth())* bimg.getHeight());
+						Image img =  bimg.getScaledInstance((int)rect.getWidth(), height, BufferedImage.SCALE_SMOOTH);
+						if (height+y+imageHeightOffset <= rect.height)
+							g.drawImage(img, rect.x, rect.y + y, null);
+						imageHeightOffset += height;
+					}
+					if (imageHeightOffset+y <= rect.height) {
+						drawnLines.add(orgLine);
+						imageHeightOffset += lineHeight;
+					}
 				}
-				drawnLines.add(l);
-				y += lineHeight;
+				else {
+					// Draw word for word with the correct spacing
+					int wordsWidth = 0;
+					for (int i = 0; i < words.length; i++) {
+						g.drawString(words[i].replace("\t", ""), (words[i].contains("\t") ? tabLength : 0) + rect.x + lineStart + wordsWidth + (i*spacing), rect.y + y + imageHeightOffset);
+						wordsWidth += metrics.stringWidth(words[i].replace("\t", "")) + (words[i].contains("\t") ? tabLength : 0);
+					}
+					drawnLines.add(orgLine);
+					y += lineHeight;
+				}
 				// If end of Field is reached, the rest of the text is either transfered to the
 				// linked field or not drawn at all
-				if (y > rect.height && this.hasLinkedField()) {
+				if ((y+imageHeightOffset) > rect.height && this.hasLinkedField()) {
 					List<String> linesToCopyOver = new LinkedList<>();
 					linesToCopyOver.addAll(lines);
 					linesToCopyOver.removeAll(drawnLines);
 					String restParagraph = linesToCopyOver.stream().collect(Collectors.joining(" "));
 					List<String> paragraphsToCopyOver = new LinkedList<>();
+					List<String> restParagraphs = new LinkedList<>();
 					paragraphsToCopyOver.add(restParagraph);
-					paragraphsToCopyOver.addAll(paragraphs);
-					paragraphsToCopyOver.removeAll(drawnParagraphs);
+					restParagraphs.addAll(paragraphs);
+					restParagraphs.removeAll(drawnParagraphs);
+					paragraphsToCopyOver.addAll(restParagraphs);
 					this.getLinkedField().drawParagraphs(gFront, gRear, paragraphsToCopyOver, font);
 					return;
 				}
-				else if (y > rect.height) {
+				else if ((y+imageHeightOffset) > rect.height) {
 					return;
 				}
 			}
@@ -342,7 +366,7 @@ public class Field {
 	}
 
 	/**
-	 * Splits a given text into seperate paragraphs
+	 * Splits a given text into seperate paragraphs. Puts "-$-" at the end of every paragraph, so it can be identified as such.
 	 * @param text	Give text
 	 * @param splitter	String to split the text by
 	 * @return	Paragraphs with a \t if indented is set to true
@@ -351,12 +375,25 @@ public class Field {
 		if (this.indented)
 			text = text.replaceAll(splitter, splitter + "\t");
 		List<String> paragraphsZ = Arrays.asList(text.split(splitter));
-		List<String> paragraphs  = new ArrayList<>(paragraphsZ.size());
+		List<String> paragraphs  = new LinkedList<>();
 		for (int i = 0; i < paragraphsZ.size(); i++) {
-			String p = paragraphsZ.get(i);
+			String p = paragraphsZ.get(i) + "-$-";
 			if (i == 0 && this.indented)
 				p = "\t" + p;
-			paragraphs.add(p);
+			if (p.contains("-imgb:") && p.substring(p.indexOf("-imgb:")).contains(":imgb-")) {
+				while (p.contains("-imgb:") && p.substring(p.indexOf("-imgb:")).contains(":imgb-")) {
+					String prevP = p.substring(0, p.indexOf("-imgb:")) + "-$-";
+					String imgP = p.substring(p.indexOf("-imgb:"), p.indexOf(":imgb-")+6);
+					p = "\t" + p.substring(p.indexOf(":imgb-")+6);
+					if(!prevP.isEmpty() && !prevP.equals("-$-"))
+						paragraphs.add(prevP);
+					paragraphs.add(imgP);
+				}
+				if(!p.isEmpty())
+					paragraphs.add(p);
+			}
+			else
+				paragraphs.add(p);
 		}
 		return paragraphs;
 	}
