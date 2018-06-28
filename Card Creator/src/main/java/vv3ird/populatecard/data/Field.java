@@ -33,7 +33,7 @@ public class Field {
 	
 	private FieldType type = FieldType.TEXT_LEFT;
 	
-	private FieldType verticalAlignment = FieldType.TEXT_TOP;
+	private VerticalTextAlignment verticalAlignment = VerticalTextAlignment.TEXT_TOP;
 	
 	private String font = null;
 	
@@ -287,7 +287,7 @@ public class Field {
 			drawnParagraphs.add(paragraph);
 			// Draw lines on surface, continue overspilling text onto linked fields if possible.
 			int y = metrics.getAscent() + 2 + (lineHeight * drawnLines.size());
-			if (this.verticalAlignment == FieldType.TEXT_CENTER) {
+			if (this.verticalAlignment == VerticalTextAlignment.TEXT_CENTER) {
 				y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent() + 2;
 				if (drawnLines.size() > 1)
 					y = y - ((lineHeight * (drawnLines.size() - 1) / 2));
@@ -413,7 +413,7 @@ public class Field {
 	
 	public static enum FieldType {
 		
-		TEXT_LEFT("Text left-aligned"), TEXT_RIGHT("Text right-aligned"), TEXT_CENTER("Text centered"), TEXT_BLOCK("Text block"), TEXT_TOP("Text top-aligned"), TEXT_BOTTOM("Text bottom-aligned"), IMAGE("Image");
+		TEXT_LEFT("Text left-aligned"), TEXT_RIGHT("Text right-aligned"), TEXT_CENTER("Text centered"), TEXT_BLOCK("Text block"), IMAGE("Image");
 
 		private String display = null;
 		
@@ -423,5 +423,20 @@ public class Field {
 		public String toString() {
 			return display;
 		}
+	}
+	
+	public static enum VerticalTextAlignment {
+		
+		TEXT_CENTER("Text centered"), TEXT_TOP("Text top-aligned"), TEXT_BOTTOM("Text bottom-aligned");
+		
+		private String display = null;
+		
+		private VerticalTextAlignment(String display) { this.display = display;}
+		
+		@Override
+		public String toString() {
+			return display;
+		}
+		
 	}
 }
