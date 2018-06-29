@@ -10,7 +10,6 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -269,7 +268,6 @@ public class Field {
 			List<String> lines = new LinkedList<>();
 			String[] arr = textToDraw.split(" ");
 			String line = "";
-			int lineCount = 0;
 			int tabLength = metrics.stringWidth(TAB_SPACING);
 			// Split paragraph into lines depending on Field width
 			for (int i = 0; i < arr.length; i++) {

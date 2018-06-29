@@ -1,9 +1,6 @@
 package vv3ird.populatecard.data;
 
-import java.awt.Color;
 import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
@@ -16,13 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.imageio.ImageIO;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import vv3ird.populatecard.control.ProjectManager;
-import vv3ird.populatecard.gui.StatusListener;
 
 /**
  * Project that contains all necessary information to create cards<br>
@@ -178,6 +172,11 @@ public class Project {
 
 	public List<String> getMappedFields () {
 		return new ArrayList<>(this.csvFieldMapping.keySet());
+	}
+	
+	
+	public Map<String, String> getFieldMappings() {
+		return new HashMap<>(this.csvFieldMapping);
 	}
 	
 	public String getName() {

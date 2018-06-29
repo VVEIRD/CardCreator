@@ -1,7 +1,6 @@
 package vv3ird.populatecard.gui;
 
 import java.awt.BorderLayout;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics2D;
@@ -40,8 +39,6 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.SwingConstants;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -52,7 +49,6 @@ import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.control.TaskScheduler;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.FieldPackage;
-import vv3ird.populatecard.data.Project;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -78,8 +74,8 @@ public class JMain extends JFrame {
 	private JMenu mnDeleteFont;
 	private JMenu mnFonts;
 
-	BufferedImage frontImage;
-	BufferedImage rearImage;
+	private BufferedImage frontImage;
+	private BufferedImage rearImage;
 	private JButton btnLoadFrontSide;
 	private JButton btnLoadBackSide;
 	private JLabel pnFrontPreview;
@@ -295,7 +291,7 @@ public class JMain extends JFrame {
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedCSV = chooser.getSelectedFile().toPath();
 						CSVParser parser = ProjectManager.openCsv(selectedCSV);
-						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getCurrentProject(), parser);
+						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), new ArrayList<>(CardCreator.getCsvHeader().keySet()), CardCreator.getFieldMappings());
 						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
 								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 						parser.close();
@@ -330,6 +326,28 @@ public class JMain extends JFrame {
 		mnCsv.add(mntmImport);
 
 		JMenuItem mntmMap = new JMenuItem("Map CSV to fields");
+		mntmMap.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), new ArrayList<>(CardCreator.getCsvHeader().keySet()), CardCreator.getFieldMappings());
+				boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
+						JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
+				// Import csv as a task so it wont interrupt running card creation process
+				Runnable payload = new Runnable() {
+					@Override
+					public void run() {
+						if (ok) {
+							lblStatus.setText("Mapping CSV Columns to Fields");
+							Map<String, String> mapping = cm.getMappings();
+							for (String field : mapping.keySet()) {
+								CardCreator.addMapping(field, mapping.get(field));
+							}
+							lblStatus.setText("Sucessfully mapped CSV Columns to Fields");
+						}
+					}
+				};
+				TaskScheduler.addTask("Import CSV data", payload, lblStatus);
+			}
+		});
 		mnCsv.add(mntmMap);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));

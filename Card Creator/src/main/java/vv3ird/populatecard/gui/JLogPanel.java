@@ -3,7 +3,6 @@ package vv3ird.populatecard.gui;
 import javax.swing.JPanel;
 import javax.swing.BoxLayout;
 import javax.swing.JScrollPane;
-import java.awt.BorderLayout;
 import javax.swing.Box;
 import javax.swing.JLabel;
 import java.awt.Component;
@@ -14,7 +13,10 @@ import java.awt.event.ActionEvent;
 
 public class JLogPanel extends JPanel {
 	
-	StatusListener list = null;
+	private static final long serialVersionUID = -4476577248213507867L;
+	
+	private StatusListener list = null;
+	
 	private JPanel logPanel;
 
 	/**

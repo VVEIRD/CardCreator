@@ -6,7 +6,6 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -149,6 +148,7 @@ public class CardCreator {
 		FieldPackage fPackage = currentProject.getFp();
 		List<String> mappedFields = currentProject.getMappedFields();
 		String[][] csvData = currentProject.getCsvData();
+		String zeroes = "%0" + String.valueOf(csvData.length).length() + "d";
 		int cardNo = 1;
 		listener.setText("Drawing cards (0/" + csvData.length +")");
 		for (String[] csvEntry : csvData) {
@@ -179,10 +179,10 @@ public class CardCreator {
 			}
 			gFront.dispose();
 			gRear.dispose();
-			filenameFront = filenameFront.replace("{no}", String.valueOf(cardNo));
+			filenameFront = filenameFront.replace("{no}", String.format(zeroes, cardNo));
 			if (filenameFront.contains("{side}")) {
 				filenameFront = filenameFront.replace("{side}", "front");
-				filenameRear = filenameRear.replace("{no}", String.valueOf(cardNo));
+				filenameRear = filenameRear.replace("{no}", String.format(zeroes, cardNo));
 				filenameRear = filenameRear.replace("{side}", "rear");
 			}
 			else {
@@ -228,5 +228,16 @@ public class CardCreator {
 
 	public static Path getOutputFolder() {
 		return currentProject != null ? currentProject.getProjectRoot().resolve("output") : null;
+	}
+
+
+	public static List<Field> getFields() {
+		return currentProject != null ? currentProject.getFp().getFields() : null;
+	}
+
+
+	public static Map<String, String> getFieldMappings() {
+		// TODO Auto-generated method stub
+		return currentProject != null ? currentProject.getFieldMappings() : null;
 	}
 }

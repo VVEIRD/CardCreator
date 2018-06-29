@@ -5,7 +5,6 @@ import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -13,37 +12,24 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
-import org.apache.commons.csv.CSVParser;
 
 import vv3ird.populatecard.data.Field;
-import vv3ird.populatecard.data.Project;
 
 public class JCSVMapperPanel extends JPanel {
 
 	private static final long serialVersionUID = -5869150781509703293L;
 
-	private Project project = null;
-	
-	private CSVParser parser = null;
-	
 	private JMappingPanel[] mappings = null;
 	
 	/**
 	 * Create the panel.
 	 */
-	public JCSVMapperPanel(Project project, CSVParser parser) {
-		if (project.getCsvHeader() == null)
-			throw new IllegalArgumentException("The project must have CSV data loaded");
-		this.project = project;
-		this.parser = parser;
-		Set<String> ks = parser.getHeaderMap().keySet();
-		String[] csvColumns = ks.toArray(new String[0]);
-		String[] csvColumnsFinal = new String[csvColumns.length+1];
-		for (int i = 0; i < csvColumns.length; i++) {
-			csvColumnsFinal[i+1] = csvColumns[i];
-		}
+	public JCSVMapperPanel(List<Field> fields, List<String> csvColumns, Map<String, String> fieldMappings) {
+		String[] csvColumnsFinal = new String[csvColumns.size()+1];
 		csvColumnsFinal[0] = "";
-		List<Field> fields = this.project.getFp().getFields();
+		for (int i = 0; i < csvColumns.size(); i++) {
+			csvColumnsFinal[i+1] = csvColumns.get(i);
+		}
 		mappings = new JMappingPanel[fields.size()];
 		
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -75,7 +61,7 @@ public class JCSVMapperPanel extends JPanel {
 		pnMapping.setLayout(new BoxLayout(pnMapping, BoxLayout.Y_AXIS));
 		int i=0;
 		for (Field field : fields) {
-			JMappingPanel mp = new JMappingPanel(field.getName(), project.getCsvColumn(field.getName()), csvColumnsFinal);
+			JMappingPanel mp = new JMappingPanel(field.getName(), fieldMappings.get(field.getName()), csvColumnsFinal);
 			mappings[i++] = mp;
 			pnMapping.add(mp);
 		}
