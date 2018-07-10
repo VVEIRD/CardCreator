@@ -47,6 +47,7 @@ import org.apache.commons.csv.CSVParser;
 import vv3ird.populatecard.CardCreator;
 import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.control.TaskScheduler;
+import vv3ird.populatecard.control.postprocessing.ReplaceImage;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.FieldPackage;
 
@@ -63,6 +64,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import javax.swing.Icon;
 
 public class JMain extends JFrame {
 
@@ -78,8 +80,9 @@ public class JMain extends JFrame {
 
 	private BufferedImage frontImage;
 	private BufferedImage rearImage;
+	private BufferedImage alternateRearImage;
 	private JButton btnLoadFrontSide;
-	private JButton btnLoadBackSide;
+	private JButton btnLoadRearSide;
 	private JLabel pnFrontPreview;
 	private JLabel pnRearPreview;
 	private JPanel pnStatus;
@@ -90,6 +93,8 @@ public class JMain extends JFrame {
 	private JTextField tfFileNameTemplate;
 	private JButton btnI;
 	private JButton btnCreateCards;
+	private JLabel pnAlternateRearPreview;
+	private JButton btnLoadAlternateRear;
 
 	/**
 	 * Create the frame.
@@ -97,7 +102,7 @@ public class JMain extends JFrame {
 	public JMain() {
 		setTitle("Card Creator");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 325, 450);
+		setBounds(100, 100, 482, 450);
 		setResizable(false);
 
 		JMenuBar menuBar = new JMenuBar();
@@ -123,7 +128,7 @@ public class JMain extends JFrame {
 					CardCreator.createNewProject(name);
 					JMain.this.setTitle("Create Cards: " + CardCreator.getCurrentProjecttName());
 					JMain.this.btnLoadFrontSide.setEnabled(true);
-					JMain.this.btnLoadBackSide.setEnabled(true);
+					JMain.this.btnLoadRearSide.setEnabled(true);
 					populateRecentProjects();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -146,7 +151,7 @@ public class JMain extends JFrame {
 					chooser.setAcceptAllFileFilterUsed(false);
 					chooser.setDialogTitle("Choose a filename");
 					chooser.setFileFilter(
-							new FileNameExtensionFilter("CardMapperProject Files", new String[] { "cmp" }));
+							new FileNameExtensionFilter("CardMapperProject Files", new String[] { "cmp", "cmpz" }));
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedProject = chooser.getSelectedFile().toPath();
@@ -360,7 +365,7 @@ public class JMain extends JFrame {
 		contentPane.add(panel, BorderLayout.CENTER);
 		panel.setLayout(null);
 
-		JLabel lblFrontSide = new JLabel("Front side");
+		JLabel lblFrontSide = new JLabel("Front");
 		lblFrontSide.setHorizontalAlignment(SwingConstants.CENTER);
 		lblFrontSide.setBounds(10, 11, 133, 14);
 		panel.add(lblFrontSide);
@@ -388,9 +393,9 @@ public class JMain extends JFrame {
 		btnLoadFrontSide.setBounds(10, 246, 133, 23);
 		panel.add(btnLoadFrontSide);
 
-		JLabel lblBackSide = new JLabel("Back side");
+		JLabel lblBackSide = new JLabel("Rear");
 		lblBackSide.setHorizontalAlignment(SwingConstants.CENTER);
-		lblBackSide.setBounds(153, 11, 133, 14);
+		lblBackSide.setBounds(163, 11, 133, 14);
 		panel.add(lblBackSide);
 		rearImage = new BufferedImage(133, 199, BufferedImage.TYPE_INT_ARGB);
 		pnRearPreview = new JLabel(new ImageIcon(rearImage));
@@ -398,8 +403,8 @@ public class JMain extends JFrame {
 		pnRearPreview.setBounds(163, 36, 133, 199);
 		panel.add(pnRearPreview);
 
-		btnLoadBackSide = new JButton("Load rear image");
-		btnLoadBackSide.addActionListener(new ActionListener() {
+		btnLoadRearSide = new JButton("Load rear image");
+		btnLoadRearSide.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				BufferedImage img = chooseImage();
 				if (img != null) {
@@ -412,9 +417,9 @@ public class JMain extends JFrame {
 				}
 			}
 		});
-		btnLoadBackSide.setEnabled(false);
-		btnLoadBackSide.setBounds(163, 246, 133, 23);
-		panel.add(btnLoadBackSide);
+		btnLoadRearSide.setEnabled(false);
+		btnLoadRearSide.setBounds(163, 246, 133, 23);
+		panel.add(btnLoadRearSide);
 
 		btnCreateCards = new JButton("Create Cards");
 		btnCreateCards.addActionListener(new ActionListener() {
@@ -434,12 +439,17 @@ public class JMain extends JFrame {
 							}
 						}
 					}, lblStatus);
+					if(CardCreator.getAlternateRearImage() != null)
+						TaskScheduler.addTask("Swap empty rear image with alternate",
+								new ReplaceImage(CardCreator.getOutputFolder(), CardCreator.getRearImage(),
+										CardCreator.getAlternateRearImage(), lblStatus),
+								lblStatus);
 				}
 			}
 		});
 		btnCreateCards.setToolTipText("Import CSV first");
 		btnCreateCards.setEnabled(false);
-		btnCreateCards.setBounds(10, 280, 286, 23);
+		btnCreateCards.setBounds(10, 280, 440, 23);
 		panel.add(btnCreateCards);
 
 		tfFileNameTemplate = new JTextField();
@@ -450,7 +460,7 @@ public class JMain extends JFrame {
 			}
 		});
 		tfFileNameTemplate.setEnabled(false);
-		tfFileNameTemplate.setBounds(10, 328, 256, 20);
+		tfFileNameTemplate.setBounds(10, 328, 405, 20);
 		panel.add(tfFileNameTemplate);
 		tfFileNameTemplate.setColumns(10);
 
@@ -497,12 +507,38 @@ public class JMain extends JFrame {
 				// JOptionPane.PLAIN_MESSAGE);
 			}
 		});
-		btnI.setBounds(271, 327, 25, 23);
+		btnI.setBounds(425, 327, 25, 23);
 		panel.add(btnI);
 
 		JLabel lblFilenameTemplate = new JLabel("Filename template");
 		lblFilenameTemplate.setBounds(10, 314, 133, 14);
 		panel.add(lblFilenameTemplate);
+
+		alternateRearImage = new BufferedImage(133, 199, BufferedImage.TYPE_INT_ARGB);
+		pnAlternateRearPreview = new JLabel(new ImageIcon(alternateRearImage));
+		pnAlternateRearPreview.setBorder(new LineBorder(new Color(0, 0, 0)));
+		pnAlternateRearPreview.setBounds(316, 36, 133, 199);
+		panel.add(pnAlternateRearPreview);
+		
+		JLabel lblAlternateBackSide = new JLabel("Alternate rear");
+		lblAlternateBackSide.setHorizontalAlignment(SwingConstants.CENTER);
+		lblAlternateBackSide.setBounds(317, 11, 133, 14);
+		panel.add(lblAlternateBackSide);
+		
+		btnLoadAlternateRear = new JButton("Load alternate rear");
+		btnLoadAlternateRear.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				BufferedImage img = chooseImage();
+				if (img != null) {
+					CardCreator.setAlternateRearImage(img);
+					loadAlternateRearImage(img);
+					System.out.println("Alternate rear image loaded");
+				}
+			}
+		});
+		btnLoadAlternateRear.setEnabled(false);
+		btnLoadAlternateRear.setBounds(316, 246, 133, 23);
+		panel.add(btnLoadAlternateRear);
 
 		pnStatus = new JPanel();
 		pnStatus.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -580,6 +616,22 @@ public class JMain extends JFrame {
 		}
 	}
 
+	private void loadAlternateRearImage(BufferedImage img) {
+		if (img != null) {
+			Image smal = img.getScaledInstance(133, 199, BufferedImage.SCALE_SMOOTH);
+			Graphics2D g = alternateRearImage.createGraphics();
+			g.drawImage(smal, 0, 0, null);
+			g.dispose();
+			pnAlternateRearPreview.repaint();
+		} else {
+			Graphics2D g = alternateRearImage.createGraphics();
+			g.setColor(Color.WHITE);
+			g.fillRect(0, 0, rearImage.getWidth(), alternateRearImage.getHeight());
+			g.dispose();
+			pnAlternateRearPreview.repaint();
+		}
+	}
+
 	private BufferedImage chooseImage() {
 		JFileChooser chooser = new JFileChooser(
 				System.getProperty("user.home") + System.getProperty("file.separator") + "Pictures");
@@ -629,9 +681,11 @@ public class JMain extends JFrame {
 		JMain.this.setTitle("Create Cards: " + CardCreator.getProjectName());
 		JMain.this.loadFrontImage(CardCreator.getFrontImage());
 		JMain.this.loadRearImage(CardCreator.getRearImage());
+		JMain.this.loadAlternateRearImage(CardCreator.getAlternateRearImage());
 		JMain.this.tfFileNameTemplate.setText(CardCreator.getFileNameTemplate());
 		JMain.this.btnLoadFrontSide.setEnabled(true);
-		JMain.this.btnLoadBackSide.setEnabled(true);
+		JMain.this.btnLoadRearSide.setEnabled(true);
+		JMain.this.btnLoadAlternateRear.setEnabled(true);
 		JMain.this.mntmImportCmFile.setEnabled(true);
 		JMain.this.mntmMapFields.setEnabled(true);
 		JMain.this.mntmImportFont.setEnabled(true);

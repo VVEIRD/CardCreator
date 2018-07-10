@@ -1,8 +1,15 @@
 package vv3ird.populatecard.data;
 
 import java.awt.Font;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -12,6 +19,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -40,7 +49,11 @@ public class Project {
 		byte[] projectBytes = Files.readAllBytes(path);
 		String projectString = new String(projectBytes, "UTF-8");
 		Gson gson = new Gson();
-		project = gson.fromJson(projectString, Project.class);
+		if (path.toString().endsWith(".cmpz"))
+			project = loadCompressed(path);
+		else {
+			project = gson.fromJson(projectString, Project.class);
+		}
 		if (project.fp != null)
 			project.fp.decodeImages();
 		project.init();
@@ -48,6 +61,23 @@ public class Project {
 		return project;
 	}
 	
+	private static Project loadCompressed(Path path) throws IOException {
+		Project p = null;
+		Gson g = new Gson();
+		FileInputStream input = new FileInputStream(path.toFile());
+		try {
+			Reader reader = new InputStreamReader(new GZIPInputStream(input), StandardCharsets.UTF_8);
+			try {
+				p = g.fromJson(reader, Project.class);
+			} finally {
+				reader.close();
+			}
+		} finally {
+			input.close();
+		}
+		return p;
+	}
+
 	/**
 	 * Save a project to the given file. Project is transformed to a Json String and then saved to disk.
 	 * @param project	Project that should be saved
@@ -58,13 +88,34 @@ public class Project {
 		if (project.fp != null)
 			project.fp.encodeImages();
 		String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(project);
+		if(path.toString().endsWith(".cmpz"))
+			saveCompressed(jsonString, path);
+		else
+			saveUncompressed(jsonString, path);
+	}
+	
+	private static void saveUncompressed(String jsonString, Path path) throws IOException {
 		try {
 			byte[] utf8JsonString = jsonString.getBytes("UTF-8");
 			Files.write(path, utf8JsonString, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 		} catch (UnsupportedEncodingException e) {
 		}
 	}
-	
+
+	private static void saveCompressed(String jsonString, Path path) throws IOException {
+		FileOutputStream output = new FileOutputStream(path.toFile());
+		try {
+			Writer writer = new OutputStreamWriter(new GZIPOutputStream(output), StandardCharsets.UTF_8);
+			try {
+				writer.write(jsonString);
+			} finally {
+				writer.close();
+			}
+		} finally {
+			output.close();
+		}
+	}
+
 	/**
 	 * CSV Data, will be loaded by {@link ProjectManager} when CSV exists in project folder
 	 */
@@ -155,7 +206,7 @@ public class Project {
 	}
 	
 	public Map<String, Integer>  getCsvHeader() {
-		return new TreeMap<>(csvHeader);
+		return csvHeader != null ? new TreeMap<>(csvHeader) : null;
 	}
 	
 	public String getFileNameTemplate() {

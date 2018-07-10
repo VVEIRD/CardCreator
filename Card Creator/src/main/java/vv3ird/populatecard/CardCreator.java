@@ -132,6 +132,9 @@ public class CardCreator {
 	public static void setRearImage(BufferedImage img, boolean deleteFields) {
 		currentProject.getFp().setRearImage(img, deleteFields);
 	}
+	public static void setAlternateRearImage(BufferedImage img) {
+		currentProject.getFp().setAlternateRearImage(img);
+	}
 	
 
 	/**
@@ -263,6 +266,10 @@ public class CardCreator {
 
 	public static BufferedImage getRearImage() {
 		return currentProject != null && currentProject.getFp() != null ? currentProject.getFp().getRearImage() : null;
+	}
+
+	public static BufferedImage getAlternateRearImage() {
+		return currentProject != null && currentProject.getFp() != null ? currentProject.getFp().getAlternateRearImage() : null;
 	}
 
 	public static String getFileNameTemplate() {

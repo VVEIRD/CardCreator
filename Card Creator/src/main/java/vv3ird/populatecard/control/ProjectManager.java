@@ -174,7 +174,7 @@ public class ProjectManager {
 	 */
 	public static Project createEmptyProject(String projectName) throws IOException {
 		Path projectRoot = Paths.get("projects", projectName);
-		Path projectFilePath = projectRoot.resolve(projectName + ".cmp");
+		Path projectFilePath = projectRoot.resolve(projectName + ".cmpz");
 		if (Files.exists(projectFilePath)) 
 			throw new IOException("Project \"" + projectName + "\" already exists");
 		Path projectFonts = projectRoot.resolve("fonts");
@@ -198,7 +198,9 @@ public class ProjectManager {
 	 */
 	public static void saveProject(Project project) throws IOException {
 		Path projectRoot = project.getProjectRoot();
-		Path projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmp");
+		Path projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmpz");
+		if(!Files.exists(projectFilePath))
+			projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmp");
 		Path projectFonts = Paths.get(projectRoot.toString().toString(), "fonts");
 		Path projectCsv = Paths.get(projectRoot.toString(), "csv");
 		Path projectOutput = Paths.get(projectRoot.toString(), "output");

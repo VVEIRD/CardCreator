@@ -189,6 +189,7 @@ public class JCardMapperPanel extends JPanel {
 						File f = chooser.getSelectedFile();
 						FieldPackage fPackage = new FieldPackage(orgFront, orgRear);
 						fPackage.addFields(fields);
+						fPackage.setAlternateRearImage(p.getFp().getAlternateRearImage());
 						if (!f.getAbsolutePath().endsWith(".cm"))
 							f = new File(f.getAbsolutePath() + ".cm");
 						FieldPackage.save(fPackage, f.toPath());
