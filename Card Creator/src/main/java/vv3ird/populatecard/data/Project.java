@@ -245,4 +245,8 @@ public class Project {
 		return mtbr.size();
 	}
 
+	public Font getFont(String font) {
+		return this.fonts.get(font);
+	}
+
 }

@@ -196,7 +196,56 @@ public class CardCreator {
 			ImageIO.write(front, "PNG", output.resolve(filenameFront).toFile());
 			ImageIO.write(rear, "PNG", output.resolve(filenameRear).toFile());
 		}
+	}
+	
+	/**
+	 * Draws a card of a given project. Prerequisites are that a csv exists,
+	 * thats the fields are mapped to csv columns.
+	 * 
+	 * @param cardNo 	Number of the card that should be created
+	 * @param listener	Listener for updates on creation process
+	 * @return Returns an array with the front image at index 0 and the rear image
+	 *         at index 1.
+	 * @throws IndexOutOfBoundsException
+	 *             Throws {@link IndexOutOfBoundsException} if the parameter cardNo
+	 *             is smaller than 0 or greater than the number of csv rows.
+	 */
+	public static BufferedImage[] createCard(int cardNo, StatusListener listener) {
+		FieldPackage fPackage = currentProject.getFp();
+		List<String> mappedFields = currentProject.getMappedFields();
+		String[][] csvData = currentProject.getCsvData();
+		listener.setText("Drawing cards (0/" + csvData.length +")");
+		String[] csvEntry = csvData[cardNo];
+		BufferedImage front = fPackage.getFrontImageCopy();
+		BufferedImage rear = fPackage.getRearImageCopy();
+		Graphics2D gFront = front.createGraphics();
+		gFront.setColor(Color.BLACK);
+		Graphics2D gRear = rear.createGraphics();
+		gRear.setColor(Color.BLACK);
+		listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
+		for (String fieldName : mappedFields) {
+			Field field = fPackage.getFieldByName(fieldName);
+			int columnIndex = currentProject.getCsvColumnIndex(fieldName);
+			if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {
+				try {
+				Font font = ProjectManager.getFont(currentProject, field.getFont());
+				String content = csvEntry[columnIndex];
+				field.drawContent(gFront, gRear, content, font);
+				} catch (Exception e) {
+					listener.setText("Error drawing on field " +field.getName() + ": " +e.getMessage());
+					e.printStackTrace();
+				}
+			}
+		}
+		gFront.dispose();
+		gRear.dispose();
 		
+		BufferedImage[] imgs = new BufferedImage[2];
+		
+		imgs[0] = front;
+		imgs[1] = rear;
+		
+		return imgs;
 	}
 
 	public static Map<String, Integer> getCsvHeader() {
@@ -239,5 +288,10 @@ public class CardCreator {
 	public static Map<String, String> getFieldMappings() {
 		// TODO Auto-generated method stub
 		return currentProject != null ? currentProject.getFieldMappings() : null;
+	}
+
+
+	public static Font getFont(String font) {
+		return currentProject != null ? currentProject.getFont(font) : ProjectManager.getDefaultFont();
 	}
 }

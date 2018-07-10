@@ -62,11 +62,16 @@ public class Field {
 	public Field(String name, Dimension pos1, Dimension pos2, Color outlineColor, CardSide side, FieldType type) {
 		this(name, pos1, pos2, outlineColor, side, type, null, 20);
 	}
-
+	
 	public Field(String name, Dimension pos1, Dimension pos2, Color outlineColor, CardSide side, FieldType type, String fontName, int fontSize) {
+		this(name, pos1, pos2, outlineColor, side, type, fontName, fontSize, null);
+	}
+
+	public Field(String name, Dimension pos1, Dimension pos2, Color outlineColor, CardSide side, FieldType type, String fontName, int fontSize, Field linkedField) {
 		this.name = name;
 		this.side = side;
 		this.type = type;
+		this.linkedField = linkedField;
 		int x1 = pos1.width < pos2.width ? pos1.width : pos2.width;
 		int x2 = pos1.width < pos2.width ? pos2.width : pos1.width;
 		int y1 = pos1.height < pos2.height ? pos1.height : pos2.height;
@@ -213,6 +218,22 @@ public class Field {
 
 	public void setHeight(int height) {
 		this.rect.height = height;
+	}
+	
+	public int getX() {
+		return this.rect.x;
+	}
+	
+	public int getY() {
+		return this.rect.y;
+	}
+	
+	public int getWidth() {
+		return this.rect.width;
+	}
+
+	public int getHeight() {
+		return this.rect.height;
 	}
 	
 	public void setIndented(boolean indented) {
@@ -395,6 +416,10 @@ public class Field {
 		}
 		return paragraphs;
 	}
+	
+	public Field clone() {
+		return new Field(name, new Dimension(rect.x, rect.y), new Dimension(rect.x+rect.width, rect.y + rect.height), color, side, type, font, fontSize, linkedField);
+	}
 
 	public static enum CardSide {
 		
@@ -435,6 +460,5 @@ public class Field {
 		public String toString() {
 			return display;
 		}
-		
 	}
 }

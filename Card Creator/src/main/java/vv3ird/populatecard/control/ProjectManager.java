@@ -373,4 +373,9 @@ public class ProjectManager {
 		return img;
 	}
 
+
+	public static Font getDefaultFont() {
+		return new JLabel().getFont();
+	}
+
 }
