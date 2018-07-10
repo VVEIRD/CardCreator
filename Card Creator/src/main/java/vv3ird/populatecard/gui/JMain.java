@@ -61,6 +61,8 @@ import java.awt.Desktop;
 import javax.swing.Box;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class JMain extends JFrame {
 
@@ -368,7 +370,7 @@ public class JMain extends JFrame {
 		pnFrontPreview.setBounds(10, 36, 133, 199);
 		panel.add(pnFrontPreview);
 
-		btnLoadFrontSide = new JButton("Load image");
+		btnLoadFrontSide = new JButton("Load front image");
 		btnLoadFrontSide.setEnabled(false);
 		btnLoadFrontSide.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -396,7 +398,7 @@ public class JMain extends JFrame {
 		pnRearPreview.setBounds(163, 36, 133, 199);
 		panel.add(pnRearPreview);
 
-		btnLoadBackSide = new JButton("Load back image");
+		btnLoadBackSide = new JButton("Load rear image");
 		btnLoadBackSide.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				BufferedImage img = chooseImage();
@@ -418,6 +420,7 @@ public class JMain extends JFrame {
 		btnCreateCards.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (CardCreator.hasCurrentProject()) {
+					CardCreator.setFileNameTemplate(tfFileNameTemplate.getText());
 					TaskScheduler.addTask("Create cards", new Runnable() {
 						@Override
 						public void run() {
@@ -440,6 +443,12 @@ public class JMain extends JFrame {
 		panel.add(btnCreateCards);
 
 		tfFileNameTemplate = new JTextField();
+		tfFileNameTemplate.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				CardCreator.setFileNameTemplate(tfFileNameTemplate.getText());
+			}
+		});
 		tfFileNameTemplate.setEnabled(false);
 		tfFileNameTemplate.setBounds(10, 328, 256, 20);
 		panel.add(tfFileNameTemplate);
