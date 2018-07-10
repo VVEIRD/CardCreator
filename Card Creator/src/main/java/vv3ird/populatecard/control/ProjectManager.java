@@ -386,7 +386,7 @@ public class ProjectManager {
 		Path targetRoot = Paths.get("projects", srcRoot.getFileName().toString());
 		int i = 0;
 		while (Files.exists(targetRoot)) {
-			targetRoot = Paths.get("projects", srcRoot.getFileName().toString(), "_" + i++);
+			targetRoot = Paths.get("projects", srcRoot.getFileName().toString() + "_" + i++);
 		}
 		try {
 			Files.createDirectories(targetRoot);
