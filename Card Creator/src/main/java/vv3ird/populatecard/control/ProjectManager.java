@@ -42,6 +42,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import vv3ird.populatecard.data.Project;
+import vv3ird.populatecard.io.CopyFileVisitor;
 
 public class ProjectManager {
 
@@ -378,6 +379,23 @@ public class ProjectManager {
 
 	public static Font getDefaultFont() {
 		return new JLabel().getFont();
+	}
+
+	public static Path importProject(Path selectedProject) {
+		Path srcRoot = selectedProject.getParent();
+		Path targetRoot = Paths.get("projects", srcRoot.getFileName().toString());
+		int i = 0;
+		while (Files.exists(targetRoot)) {
+			targetRoot = Paths.get("projects", srcRoot.getFileName().toString(), "_" + i++);
+		}
+		try {
+			Files.createDirectories(targetRoot);
+			Files.walkFileTree(srcRoot, new CopyFileVisitor(targetRoot));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+		return targetRoot.resolve(selectedProject.getFileName());
 	}
 
 }

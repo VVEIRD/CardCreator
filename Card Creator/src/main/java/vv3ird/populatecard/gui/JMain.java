@@ -185,6 +185,34 @@ public class JMain extends JFrame {
 
 		mnRecentProjects = new JMenu("Recent projects");
 		mnFile.add(mnRecentProjects);
+		
+		JMenuItem mntmImportProject = new JMenuItem("Import project");
+		mntmImportProject.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String cmDir = System.getProperty("user.dir") + File.separator + "projects";
+				try {
+					if (!Files.exists(Paths.get(cmDir)))
+						Files.createDirectories(Paths.get(cmDir));
+
+					JFileChooser chooser = new JFileChooser(cmDir);
+					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+					chooser.setAcceptAllFileFilterUsed(false);
+					chooser.setDialogTitle("Choose a filename");
+					chooser.setFileFilter(
+							new FileNameExtensionFilter("CardMapperProject Files", new String[] { "cmp", "cmpz" }));
+					int res = chooser.showOpenDialog(JMain.this);
+					if (res == JFileChooser.APPROVE_OPTION) {
+						Path selectedProject = chooser.getSelectedFile().toPath();
+						selectedProject = ProjectManager.importProject(selectedProject);
+						if(selectedProject != null)
+							openProject(selectedProject.toString());
+					}
+				} catch (Exception e2) {
+					e2.printStackTrace();
+				}
+			}
+		});
+		mnFile.add(mntmImportProject);
 
 		JMenuItem mntmExit = new JMenuItem("Exit");
 		mnFile.add(mntmExit);
