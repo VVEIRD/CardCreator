@@ -7,12 +7,10 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -21,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,9 +44,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 
+import vv3ird.populatecard.CardCreator;
 import vv3ird.populatecard.control.FieldEditor;
 import vv3ird.populatecard.control.FieldEditor.Corner;
-import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.FieldPackage;
@@ -80,10 +77,6 @@ public class JCardMapperPanel extends JPanel {
 	Dimension frontPos1 = null;
 	Dimension backPos1 = null;
 	
-	private Project p;
-
-	private FieldPackage fp = new FieldPackage();
-	
 	private List<Field> fields = new LinkedList<>();
 	
 	private FieldEditor editor = null;
@@ -102,7 +95,6 @@ public class JCardMapperPanel extends JPanel {
 	 * @throws IOException
 	 */
 	public JCardMapperPanel(Project p) {
-		this.p = p;
 		BufferedImage frontImage = p.getFp().getFrontImage();
 		BufferedImage rearImage = p.getFp().getRearImage();
 		
@@ -117,8 +109,7 @@ public class JCardMapperPanel extends JPanel {
 		setMaximumSize(new Dimension(1000, 800));
 		contentPane = this;
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		this.fp = p.getFp();
-		this.fields.addAll(fp.getFields());
+		this.fields.addAll(p.getFp().getFields().stream().map(f -> f.clone()).collect(Collectors.toList()));
 		this.editor = new FieldEditor(this.fields);
 		contentPane.setLayout(new BorderLayout(0, 0));
 		// Front image
@@ -154,31 +145,7 @@ public class JCardMapperPanel extends JPanel {
 					if (!Files.exists(Paths.get(cmDir)))
 						Files.createDirectories(Paths.get(cmDir));
 
-					JFileChooser chooser = new JFileChooser(cmDir) {
-						private static final long serialVersionUID = 1L;
-
-						@Override
-						public void approveSelection() {
-							File f = getSelectedFile();
-							if (f.exists() && getDialogType() == SAVE_DIALOG) {
-								int result = JOptionPane.showConfirmDialog(this, "The file exists, overwrite?",
-										"Existing file", JOptionPane.YES_NO_CANCEL_OPTION);
-								switch (result) {
-								case JOptionPane.YES_OPTION:
-									super.approveSelection();
-									return;
-								case JOptionPane.NO_OPTION:
-									return;
-								case JOptionPane.CLOSED_OPTION:
-									return;
-								case JOptionPane.CANCEL_OPTION:
-									cancelSelection();
-									return;
-								}
-							}
-							super.approveSelection();
-						}
-					};
+					JFileChooser chooser = new JFileChooserCheckExisting(cmDir);
 					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					chooser.setAcceptAllFileFilterUsed(false);
 
@@ -398,7 +365,7 @@ public class JCardMapperPanel extends JPanel {
 		panel.add(horizontalBox_1);
 		
 		
-		fieldEditior = new JFieldEditorPanel(new Field("<none>", new Dimension(0, 0), new Dimension(10, 10), rectColor), this.p);
+		fieldEditior = new JFieldEditorPanel(new Field("<none>", new Dimension(0, 0), new Dimension(10, 10), rectColor));
 		horizontalBox_1.add(fieldEditior);
 		
 		Component horizontalGlue_2 = Box.createHorizontalGlue();
@@ -517,7 +484,7 @@ public class JCardMapperPanel extends JPanel {
 //					Field.FieldType.values(), // Array of choices
 //					Field.FieldType.values()[0]); // Initial choice
 			Field newField = new Field(name, pos1, new Dimension(x, y), rectColor, side);
-			JFieldEditorPanel fe = new JFieldEditorPanel(newField, p);
+			JFieldEditorPanel fe = new JFieldEditorPanel(newField);
 			boolean ok = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
                     fe,
                     "Create Field",
@@ -535,7 +502,7 @@ public class JCardMapperPanel extends JPanel {
 					JCardMapperPanel.this.fields.add(newField);
 				Graphics2D g = side == Field.CardSide.FRONT ? b1Front.createGraphics() : b1Rear.createGraphics();
 				g.setColor(rectColor);
-				newField.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, newField.getFont()));
+				newField.drawRect(g, CardCreator.getFont(newField.getFont()));
 				g.dispose();
 				repaintImage(side);
 			}

@@ -5,12 +5,15 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
@@ -117,8 +120,8 @@ public class CardCreator {
 	 * @param csvPath	Path to csv file
 	 * @throws IOException	THrown if the csv file does not exists, or is no valid csv file.
 	 */
-	public static void importCsv(Path csvPath) throws IOException {
-		ProjectManager.importCsv(currentProject, csvPath);
+	public static void importCsv(Path csvPath, boolean processMediaEntriesOnImport) throws IOException {
+		ProjectManager.importCsv(currentProject, csvPath, processMediaEntriesOnImport);
 	}
 
 	public static void addMapping(String field, String csvColumnName) {
@@ -276,12 +279,44 @@ public class CardCreator {
 		return currentProject != null ? currentProject.getFileNameTemplate() : null;
 	}
 
-
 	public static Map<String, Font> getFonts() {
-		return currentProject != null ? currentProject.getFonts() : null;
+		Map<String, Font> fonts = getSystemFonts();
+		if (currentProject != null) {
+			Map<String, Font> pfonts  = new HashMap<>(currentProject.getFonts());
+			for (String sysFontName : fonts.keySet()) {
+				pfonts.put(sysFontName, fonts.get(sysFontName));
+			}
+			fonts = pfonts;
+		}
+		return fonts;
 	}
 
+	public static String[] getFontNames() {
+		String[] sfonts = ProjectManager.getSystemFonts();
+		String[] pfonts = new String[0];
+		if (currentProject != null) {
+			pfonts  = currentProject.getFonts().keySet().toArray(new String[currentProject.getFonts().keySet().size()]);
+			System.out.println("Project Fonts: " + pfonts.length);
+		}
+		String[] fonts = new String[pfonts.length+sfonts.length];
+		for (int i = 0; i < pfonts.length; i++) {
+			fonts[i] = pfonts[i];
+		}
+		for (int i = pfonts.length; i < sfonts.length+pfonts.length; i++) {
+			fonts[i] = sfonts[i-pfonts.length];
+		}
+		return fonts;
+	}
 
+	public static Map<String, Font> getSystemFonts() {
+		String[] fontNames = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+		Map<String, Font> fonts = new HashMap<>();
+		for (int i = 0; i < fontNames.length; i++) {
+			fonts.put(fontNames[i], Font.getFont(fontNames[i]));
+		}
+		return fonts;
+	}
+	
 	public static Path getOutputFolder() {
 		return currentProject != null ? currentProject.getProjectRoot().resolve("output") : null;
 	}
@@ -300,5 +335,15 @@ public class CardCreator {
 
 	public static Font getFont(String font) {
 		return currentProject != null ? currentProject.getFont(font) : ProjectManager.getDefaultFont();
+	}
+
+
+	public static Path exportProject(Path exportFile) {
+		return ProjectManager.exportProject(currentProject, exportFile);
+	}
+
+
+	public static Map<String, Font> getProjectFonts() {
+		return currentProject != null ? currentProject.getFonts() : null;
 	}
 }

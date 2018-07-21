@@ -14,7 +14,11 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -103,9 +108,9 @@ public class ProjectManager {
 		fontFiles.forEach(pth -> loadFont(p, pth));
 		fontFiles.close();
 		// Load CSV
-		Path projectCsv = Paths.get(projectRoot.toString(), "csv", rootFolderName + ".csv");
-		if (Files.exists(projectCsv)) {
-			CSVFormat format = CSVFormat.newFormat(';').withQuote('\"').withRecordSeparator('\n').withFirstRecordAsHeader();
+		Path projectCsv = Files.list(Paths.get(projectRoot.toString(), "csv")).filter(f -> f.toString().endsWith(".csv") && Files.isRegularFile(f)).findFirst().orElse(null);
+		if (projectCsv != null && Files.exists(projectCsv)) {
+			CSVFormat format = p.getCSVFormat();
 			try (InputStream is = Files.newInputStream(projectCsv); Reader in = new InputStreamReader(is); CSVParser parser = new CSVParser(in, format);) {
 				List<CSVRecord> records = parser.getRecords();
 				Map<String, Integer> headerMap = parser.getHeaderMap();
@@ -114,7 +119,7 @@ public class ProjectManager {
 				for (CSVRecord record : records) {
 					csvData[row] = new String[record.size()];
 					for (int i = 0; i < csvData[row].length; i++) {
-						csvData[row][i] = record.get(i);
+						csvData[row][i] = processMediaEntry(record.get(i));
 					}
 					row++;
 				}
@@ -199,9 +204,9 @@ public class ProjectManager {
 	 */
 	public static void saveProject(Project project) throws IOException {
 		Path projectRoot = project.getProjectRoot();
-		Path projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmpz");
+		Path projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmp");
 		if(!Files.exists(projectFilePath))
-			projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmp");
+			projectFilePath = Paths.get(projectRoot.toString(), project.getName() + ".cmpz");
 		Path projectFonts = Paths.get(projectRoot.toString().toString(), "fonts");
 		Path projectCsv = Paths.get(projectRoot.toString(), "csv");
 		Path projectOutput = Paths.get(projectRoot.toString(), "output");
@@ -240,21 +245,21 @@ public class ProjectManager {
 		project.removeFont(fontName);
 	}
 	
-	public static CSVParser openCsv(Path csvPath) throws IOException {
+	public static CSVParser openCsv(Path csvPath, CSVFormat format) throws IOException {
 		if(Files.exists(csvPath)) {
-			CSVFormat format = CSVFormat.newFormat(';').withQuote('\"').withRecordSeparator('\n').withFirstRecordAsHeader();
+//			CSVFormat format = CSVFormat.newFormat(';').withQuote('\"').withRecordSeparator('\n').withFirstRecordAsHeader();
 			InputStream is = Files.newInputStream(csvPath);
-			Reader in = new InputStreamReader(is);
+			Reader in = new InputStreamReader(is, StandardCharsets.UTF_8);
 			CSVParser parser = new CSVParser(in, format);
 			return parser;
 		}
 		return null;
 	}
 	
-	public static void importCsv(Project project, Path csvPath) throws IOException {
+	public static void importCsv(Project project, Path csvPath, boolean processMediaEntries) throws IOException {
 		boolean csvValid=false;
 		if(Files.exists(csvPath)) {
-			CSVFormat format = CSVFormat.newFormat(';').withQuote('\"').withRecordSeparator('\n').withFirstRecordAsHeader();
+			CSVFormat format = project.getCSVFormat();
 			try (InputStream is = Files.newInputStream(csvPath);
 					Reader in = new InputStreamReader(is);
 					CSVParser parser = new CSVParser(in, format);) {
@@ -271,7 +276,7 @@ public class ProjectManager {
 					System.out.println("Row: " + (row+1) + " CSV columns: " + record.size());
 					csvData[row] = new String[record.size()];
 					for (int i = 0; i < csvData[row].length; i++) {
-						csvData[row][i] = processMediaEntry(record.get(i));
+						csvData[row][i] = processMediaEntries ? processMediaEntry(record.get(i)) : record.get(i);
 						System.out.println("\tColumn " + i + ": " + record.get(i) + ", ");
 					}
 					System.out.println();
@@ -286,8 +291,8 @@ public class ProjectManager {
 				try (InputStream is = Files.newInputStream(csvPath);
 						Reader in = new InputStreamReader(is);
 						CSVParser parser = new CSVParser(in, format);) {
-					Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", project.getName() + ".csv");
-					BufferedWriter br = Files.newBufferedWriter(projectCsv, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+					Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", "data.csv");
+					BufferedWriter br = Files.newBufferedWriter(projectCsv, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 					String[] header = new String[parser.getHeaderMap().size()];
 					Map<String, Integer> headerMap = parser.getHeaderMap();
 					for (String head : headerMap.keySet()) {
@@ -301,7 +306,7 @@ public class ProjectManager {
 						for(int i=0; i<csvRecord.size();i++) {
 							String entry = csvRecord.get(i);
 							System.out.println(entry);
-							entry = processMediaEntry(entry);
+							entry = processMediaEntries ? processMediaEntry(entry) : entry;
 							System.out.println(entry);
 							record.add(entry);
 						}
@@ -317,20 +322,39 @@ public class ProjectManager {
 		}
 	}
 
-	private static String processMediaEntry(String entry) { 
-		while(entry.contains("-img:") && entry.substring(entry.indexOf("-img:")).contains(":img-")) {
-			String pathToImg = entry.substring(entry.indexOf("-img:")+5, entry.indexOf(":img-"));
-			try {
+	public static String processMediaEntry(String entry) { 
+		// Replaces the old format with the new xml style format
+		entry = entry.replace("-img:", "<img>").replace(":img-", "</img>").replace("-imgb:", "<imgb>").replace(":imgb-", "</imgb>");
+		try {
+			while (containsImageLink(entry)) {
+				String pathToImg = entry.substring(entry.indexOf("<img>") + 5, entry.indexOf("</img>"));
+
 				BufferedImage img = ImageIO.read(new File(pathToImg));
 				String base64 = encodeImageToBase64(img);
-				entry = entry.substring(0, entry.indexOf("-img:")) + "-imgb:" + base64 + ":imgb-"  + entry.substring(entry.indexOf(":img-")+5);
-			} catch (IOException e) {
-				// Image cannot be loaded, remove reference
-				entry = entry.substring(0, entry.indexOf("-img:")) + entry.substring(entry.indexOf(":img-")+5); 
-				e.printStackTrace();
+				entry = entry.substring(0, entry.indexOf("<img>")) + "<imgb>" + base64 + "</imgb>"
+						+ entry.substring(entry.indexOf("</img>") + 6);
 			}
+		} catch (IOException e) {
+			// Image cannot be loaded, remove reference
+			// entry = entry.substring(0, entry.indexOf("<img>")) +
+			// entry.substring(entry.indexOf("</img>")+6);
+			e.printStackTrace();
+			System.out.println(entry);
 		}
 		return entry;
+	}
+
+
+	public static boolean containsImageLink(String entry) {
+		return entry.indexOf("<img>") >= 0 && entry.indexOf("<img>") < entry.indexOf("</img>");
+	}
+	
+	public static boolean isBase64Image(String entry) {
+		return entry.indexOf("<imgb>") == 0 && entry.indexOf("<imgb>") < entry.indexOf("</imgb>");
+	}
+	
+	public static boolean containsBase64Image(String entry) {
+		return entry.indexOf("<imgb>") >= 0 && entry.indexOf("<imgb>") < entry.indexOf("</imgb>");
 	}
 
 
@@ -382,6 +406,9 @@ public class ProjectManager {
 	}
 
 	public static Path importProject(Path selectedProject) {
+		
+		if(selectedProject.toString().toLowerCase().endsWith(".zip"))
+			return importZipProject(selectedProject);
 		Path srcRoot = selectedProject.getParent();
 		Path targetRoot = Paths.get("projects", srcRoot.getFileName().toString());
 		int i = 0;
@@ -396,6 +423,63 @@ public class ProjectManager {
 			return null;
 		}
 		return targetRoot.resolve(selectedProject.getFileName());
+	}
+
+	public static Path importZipProject(Path sourceFile) {
+		Map<String, String> env = new HashMap<>(); 
+		Path targetRoot = null;
+		Path targetProject = null;
+        try {
+	        URI uri = new URI("jar:"+ sourceFile.toFile().toURI());
+	        System.out.println(uri);
+			try (FileSystem zipfs = FileSystems.newFileSystem(uri, env)) {
+				Path sourceRoot = zipfs.getPath("/");
+				Path projectFile = Files.list(sourceRoot).filter(p -> p.getFileName().toString().endsWith(".cmp") || p.getFileName().toString().endsWith(".cmpz")).findFirst().orElse(null);
+				if (projectFile != null) {
+					Project p = Project.load(projectFile);
+					targetRoot = Paths.get("project", p.getName());
+					int i = 0;
+					while (Files.exists(targetRoot)) {
+						targetRoot = Paths.get("projects", p.getName() + "_" + ++i);
+					}
+					System.out.println("Source Root: " + sourceRoot);
+					System.out.println("Target Root: " + targetRoot);
+					Files.createDirectories(targetRoot);
+					Files.walkFileTree(sourceRoot, new CopyFileVisitor(targetRoot));
+					targetProject = Paths.get("projects", p.getName() + "_" + i, projectFile.getFileName().toString());
+				}
+				return targetProject;
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+        }
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+        return targetRoot;
+	}
+
+	public static Path exportProject(Project p, Path exportFile) {
+		Path sourceRoot = Paths.get("projects", p.getName());
+		Map<String, String> env = new HashMap<>(); 
+        env.put("create", "true");
+        try {
+        URI uri = new URI("jar:"+ exportFile.toFile().toURI());
+        System.out.println(uri);
+		try (FileSystem zipfs = FileSystems.newFileSystem(uri, env)) {
+			Path targetRoot = zipfs.getPath("/");
+			Files.walkFileTree(sourceRoot, new CopyFileVisitor(targetRoot));
+			return exportFile;
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+        }
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+        return null;
 	}
 
 }

@@ -64,7 +64,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import javax.swing.Icon;
 
 public class JMain extends JFrame {
 
@@ -95,6 +94,10 @@ public class JMain extends JFrame {
 	private JButton btnCreateCards;
 	private JLabel pnAlternateRearPreview;
 	private JButton btnLoadAlternateRear;
+	private JMenuItem mntmExportProject;
+	private JMenuItem mntmImportCsv;
+	private JMenuItem mntmSaveProject;
+	private JMenuItem mntmMapCsv;
 
 	/**
 	 * Create the frame.
@@ -164,22 +167,31 @@ public class JMain extends JFrame {
 		});
 		mnFile.add(mntmOpenProject);
 
-		JMenuItem mntmSaveProject = new JMenuItem("Save project");
+		mntmSaveProject = new JMenuItem("Save project");
+		mntmSaveProject.setEnabled(false);
 		mntmSaveProject.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if (CardCreator.hasCurrentProject())
-					CardCreator.setFileNameTemplate(JMain.this.tfFileNameTemplate.getText().trim());
-				try {
-					lblStatus.setText("Saving project file...");
-					CardCreator.save();
-					lblStatus.setText("Project file saved");
-					populateRecentProjects();
-				} catch (IOException e) {
-					System.out.println("Error saving project file");
-					lblStatus.setText("Error: Unable to save project file: " + e.getMessage());
-					e.printStackTrace();
-				}
+				TaskScheduler.addTask("Saving project", 
+					new Runnable() {
+						public void run() {
+							if (CardCreator.hasCurrentProject())
+								CardCreator.setFileNameTemplate(JMain.this.tfFileNameTemplate.getText().trim());
+							try {
+								lblStatus.setText("Saving project file...");
+								CardCreator.save();
+								lblStatus.setText("Project file saved");
+								populateRecentProjects();
+							} catch (IOException e) {
+								System.out.println("Error saving project file");
+								lblStatus.setText("Error: Unable to save project file: " + e.getMessage());
+								e.printStackTrace();
+							}
+						}
+					}, 
+					lblStatus
+				);
 			}
+			
 		});
 		mnFile.add(mntmSaveProject);
 
@@ -199,13 +211,27 @@ public class JMain extends JFrame {
 					chooser.setAcceptAllFileFilterUsed(false);
 					chooser.setDialogTitle("Choose a filename");
 					chooser.setFileFilter(
-							new FileNameExtensionFilter("CardMapperProject Files", new String[] { "cmp", "cmpz" }));
+							new FileNameExtensionFilter("CardMapperProject Files", new String[] { "cmp", "cmpz", "zip" }));
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
-						Path selectedProject = chooser.getSelectedFile().toPath();
-						selectedProject = ProjectManager.importProject(selectedProject);
-						if(selectedProject != null)
-							openProject(selectedProject.toString());
+						TaskScheduler.addTask("Import project", new Runnable() {
+							@Override
+							public void run() {
+								Path selectedProject = chooser.getSelectedFile().toPath();
+								lblStatus.setText("Importing project \"" + (selectedProject != null ? selectedProject.getFileName().toString() : null) + "\"...");
+								selectedProject = ProjectManager.importProject(selectedProject);
+								if (selectedProject != null)
+									try {
+										JMain.this.openProject(selectedProject.toString());
+										lblStatus.setText("Import of project \"" + (selectedProject != null ? selectedProject.getFileName().toString() : null) + "\" finished");
+									} catch (IOException e) {
+										e.printStackTrace();
+										lblStatus.setText("Import of project \"" + (selectedProject != null ? selectedProject.getFileName().toString() : null) + "\" failed");
+									}
+								else
+									lblStatus.setText("Import of project \"" + (selectedProject != null ? selectedProject.getFileName().toString() : null) + "\" failed");
+							}
+						}, lblStatus);
 					}
 				} catch (Exception e2) {
 					e2.printStackTrace();
@@ -213,8 +239,72 @@ public class JMain extends JFrame {
 			}
 		});
 		mnFile.add(mntmImportProject);
+		
+		mntmExportProject = new JMenuItem("Export Project");
+		mntmExportProject.setEnabled(false);
+		mntmExportProject.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String cmDir = System.getProperty("user.dir") + File.separator + "projects";
+				try {
+					if (!Files.exists(Paths.get(cmDir)))
+						Files.createDirectories(Paths.get(cmDir));
+					JFileChooser chooser = new JFileChooserCheckExisting(cmDir);
+					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+					chooser.setAcceptAllFileFilterUsed(false);
+					chooser.setDialogTitle("Choose a filename");
+					chooser.setFileFilter(
+							new FileNameExtensionFilter("Compressed Project File (zip)", new String[] { "zip" }));
+					int res = chooser.showSaveDialog(JMain.this);
+					if (res == JFileChooser.APPROVE_OPTION) {
+						Path exportFile = chooser.getSelectedFile().toPath();
+						if (!exportFile.toString().toLowerCase().endsWith(".zip"))
+							exportFile = Paths.get(exportFile.toString()+".zip");
+						final Path exportFileFinal = exportFile;
+						TaskScheduler.addTask("Project export",
+							new Runnable() {
+								public void run() {
+									try {
+									lblStatus.setText("Exporting project \"" + CardCreator.getCurrentProjecttName() + "\"");
+									Path exP = CardCreator.exportProject(exportFileFinal);
+									if (exP != null) {
+										lblStatus.setText("Sucessfully exported project");
+										Desktop.getDesktop().open(exportFileFinal.getParent().toFile());
+									}
+									else
+										lblStatus.setText("An error occured while exporting the project");
+									}
+									catch(Exception e) {
+										e.printStackTrace();
+									}
+								}
+							},
+							lblStatus
+						);
+					}
+				}
+				 catch (IOException e) {}
+			}
+		});
+		mnFile.add(mntmExportProject);
 
 		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				int result = JOptionPane.showConfirmDialog(JMain.this, "Close program?", "Exiting...",
+						JOptionPane.YES_NO_CANCEL_OPTION);
+				switch (result) {
+				case JOptionPane.YES_OPTION:
+					System.exit(0);
+					return;
+				case JOptionPane.NO_OPTION:
+					return;
+				case JOptionPane.CLOSED_OPTION:
+					return;
+				case JOptionPane.CANCEL_OPTION:
+					return;
+				}
+			}
+		});
 		mnFile.add(mntmExit);
 
 		JMenu mnEdit = new JMenu("Edit");
@@ -309,8 +399,9 @@ public class JMain extends JFrame {
 		JMenu mnCsv = new JMenu("CSV");
 		menuBar.add(mnCsv);
 
-		JMenuItem mntmImport = new JMenuItem("Import CSV");
-		mntmImport.addActionListener(new ActionListener() {
+		mntmImportCsv = new JMenuItem("Import CSV");
+		mntmImportCsv.setEnabled(false);
+		mntmImportCsv.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String cmDir = System.getProperty("user.dir") + File.separator + "csv";
 				try {
@@ -325,7 +416,7 @@ public class JMain extends JFrame {
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedCSV = chooser.getSelectedFile().toPath();
-						CSVParser parser = ProjectManager.openCsv(selectedCSV);
+						CSVParser parser = ProjectManager.openCsv(selectedCSV, CardCreator.getCurrentProject().getCSVFormat());
 						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), new ArrayList<>(CardCreator.getCsvHeader().keySet()), CardCreator.getFieldMappings());
 						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
 								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
@@ -335,7 +426,7 @@ public class JMain extends JFrame {
 							@Override
 							public void run() {
 								try {
-									CardCreator.importCsv(selectedCSV);
+									CardCreator.importCsv(selectedCSV, false);
 									lblStatus.setText("Successfully imported csv-file " + selectedCSV.getFileName().toString());
 									if (ok) {
 										Map<String, String> mapping = cm.getMappings();
@@ -344,6 +435,7 @@ public class JMain extends JFrame {
 										}
 									}
 									btnCreateCards.setEnabled(true);
+									mntmMapCsv.setEnabled(true);
 								} catch (IOException e) {
 									lblStatus.setText("An Error occured while importing the csv-file " + selectedCSV.getFileName().toString());
 									e.printStackTrace();
@@ -358,10 +450,11 @@ public class JMain extends JFrame {
 				}
 			}
 		});
-		mnCsv.add(mntmImport);
+		mnCsv.add(mntmImportCsv);
 
-		JMenuItem mntmMap = new JMenuItem("Map CSV to fields");
-		mntmMap.addActionListener(new ActionListener() {
+		mntmMapCsv = new JMenuItem("Map CSV to fields");
+		mntmMapCsv.setEnabled(false);
+		mntmMapCsv.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), new ArrayList<>(CardCreator.getCsvHeader().keySet()), CardCreator.getFieldMappings());
 				boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
@@ -383,7 +476,7 @@ public class JMain extends JFrame {
 				TaskScheduler.addTask("Import CSV data", payload, lblStatus);
 			}
 		});
-		mnCsv.add(mntmMap);
+		mnCsv.add(mntmMapCsv);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -712,15 +805,20 @@ public class JMain extends JFrame {
 		JMain.this.loadAlternateRearImage(CardCreator.getAlternateRearImage());
 		JMain.this.tfFileNameTemplate.setText(CardCreator.getFileNameTemplate());
 		JMain.this.btnLoadFrontSide.setEnabled(true);
+		JMain.this.mntmSaveProject.setEnabled(true);
 		JMain.this.btnLoadRearSide.setEnabled(true);
 		JMain.this.btnLoadAlternateRear.setEnabled(true);
 		JMain.this.mntmImportCmFile.setEnabled(true);
+		JMain.this.mntmImportCsv.setEnabled(true);
 		JMain.this.mntmMapFields.setEnabled(true);
 		JMain.this.mntmImportFont.setEnabled(true);
+		JMain.this.mntmExportProject.setEnabled(true);
 		JMain.this.tfFileNameTemplate.setEnabled(true);
 		JMain.this.btnI.setEnabled(true);
-		if (CardCreator.getCsvHeader() != null)
+		if (CardCreator.getCsvHeader() != null) {
 			JMain.this.btnCreateCards.setEnabled(true);
+			JMain.this.mntmMapCsv.setEnabled(true);
+		}
 		populateDeleteFontMenu();
 		lblStatus.setText("Project opened");
 		revalidate();
@@ -736,7 +834,7 @@ public class JMain extends JFrame {
 	private void populateDeleteFontMenu() {
 		mnDeleteFont.removeAll();
 		if (CardCreator.hasCurrentProject()) {
-			Map<String, Font> fonts = CardCreator.getFonts();
+			Map<String, Font> fonts = CardCreator.getProjectFonts();
 			for (String fontName : fonts.keySet()) {
 				populateDeleteFontMenu(fontName);
 			}

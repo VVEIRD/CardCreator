@@ -253,11 +253,15 @@ public class Field {
 	}
 
 	public void drawContent(Graphics2D gFront, Graphics2D gRear, String text, Font font) {
-		List<String> paragraphs = splitIntoParagraphs(text, "-n-");
-		drawParagraphs(gFront, gRear, paragraphs, font);
-		
-
-		// Draw the String
+		if(this.getType() == FieldType.IMAGE)  {
+			if(!ProjectManager.containsImageLink(text))
+				text = "<img>" + text + "</img>";
+			drawImage(gFront, gRear, text, font);
+		}
+		else {
+			List<String> paragraphs = splitIntoParagraphs(text, "-n-");
+			drawParagraphs(gFront, gRear, paragraphs, font);
+		}
 	}
 	
 	
@@ -336,8 +340,8 @@ public class Field {
 					if (wordsLength + metrics.stringWidth(" ")*words.length < rect.width*0.60f || endOfParagraph)
 						spacing = metrics.stringWidth(" ");
 				}
-				if(l.startsWith("-imgb:") && l.endsWith(":imgb-")) {
-					BufferedImage bimg = ProjectManager.decodeImageFromBase64(l.substring(6, l.lastIndexOf(":imgb-")));
+				if(ProjectManager.isBase64Image(l)) {
+					BufferedImage bimg = ProjectManager.decodeImageFromBase64(l.substring(6, l.lastIndexOf("</imgb>")));
 					if(bimg != null) {
 						int height = (int) ((((float)rect.getWidth())/bimg.getWidth())* bimg.getHeight());
 						Image img =  bimg.getScaledInstance((int)rect.getWidth(), height, BufferedImage.SCALE_SMOOTH);
@@ -383,6 +387,25 @@ public class Field {
 		}
 		
 	}
+	
+	public void drawImage(Graphics2D gFront, Graphics2D gRear, String content, Font font) {
+		Graphics2D g = this.getSide() == CardSide.FRONT ? gFront : gRear;
+		if(ProjectManager.containsImageLink(content))
+			content = ProjectManager.processMediaEntry(content);
+		if(ProjectManager.isBase64Image(content)) {
+			BufferedImage bimg = ProjectManager.decodeImageFromBase64(content.substring(6, content.lastIndexOf("</imgb>")));
+			if(bimg != null) {
+				int height = (int) ((((float)rect.getWidth())/bimg.getWidth())* bimg.getHeight());
+				int width = (int)rect.getWidth();
+				if (height > rect.getHeight()) {
+					height = (int)rect.getHeight();
+					width = (int) ((((float)rect.getHeight())/bimg.getHeight())* bimg.getWidth());
+				}
+				Image img =  bimg.getScaledInstance(width, height, BufferedImage.SCALE_SMOOTH);
+				g.drawImage(img, rect.x, rect.y, null);
+			}
+		}
+	}
 
 	/**
 	 * Splits a given text into seperate paragraphs. Puts "-$-" at the end of every paragraph, so it can be identified as such.
@@ -399,11 +422,11 @@ public class Field {
 			String p = paragraphsZ.get(i) + "-$-";
 			if (i == 0 && this.indented)
 				p = "\t" + p;
-			if (p.contains("-imgb:") && p.substring(p.indexOf("-imgb:")).contains(":imgb-")) {
-				while (p.contains("-imgb:") && p.substring(p.indexOf("-imgb:")).contains(":imgb-")) {
-					String prevP = p.substring(0, p.indexOf("-imgb:")) + "-$-";
-					String imgP = p.substring(p.indexOf("-imgb:"), p.indexOf(":imgb-")+6);
-					p = "\t" + p.substring(p.indexOf(":imgb-")+6);
+			if (ProjectManager.containsBase64Image(p)) {
+				while (ProjectManager.containsBase64Image(p)) {
+					String prevP = p.substring(0, p.indexOf("<imgb>")) + "-$-";
+					String imgP = p.substring(p.indexOf("<imgb>"), p.indexOf("</imgb>")+7);
+					p = "\t" + p.substring(p.indexOf("</imgb>")+7);
 					if(!prevP.isEmpty() && !prevP.equals("-$-"))
 						paragraphs.add(prevP);
 					paragraphs.add(imgP);

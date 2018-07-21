@@ -4,6 +4,7 @@ import java.awt.Font;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
@@ -21,6 +22,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.commons.csv.CSVFormat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -46,12 +49,12 @@ public class Project {
 	 */
 	public static Project load(Path path) throws IOException {
 		Project project = null;
-		byte[] projectBytes = Files.readAllBytes(path);
-		String projectString = new String(projectBytes, "UTF-8");
-		Gson gson = new Gson();
 		if (path.toString().endsWith(".cmpz"))
 			project = loadCompressed(path);
 		else {
+			byte[] projectBytes = Files.readAllBytes(path);
+			String projectString = new String(projectBytes, "UTF-8");
+			Gson gson = new Gson();
 			project = gson.fromJson(projectString, Project.class);
 		}
 		if (project.fp != null)
@@ -64,7 +67,7 @@ public class Project {
 	private static Project loadCompressed(Path path) throws IOException {
 		Project p = null;
 		Gson g = new Gson();
-		FileInputStream input = new FileInputStream(path.toFile());
+		InputStream input = Files.newInputStream(path);
 		try {
 			Reader reader = new InputStreamReader(new GZIPInputStream(input), StandardCharsets.UTF_8);
 			try {
@@ -158,6 +161,22 @@ public class Project {
 	 * Root folder that will be populated when the project is loaded from file by {@link ProjectManager}
 	 */
 	private transient Path projectRoot = null;
+
+	/**
+	 * CSV-Delimiter for the csv columns
+	 */
+	private char csvDelimiter = ';';
+	
+	/**
+	 * Quotationsmarks for the csv files
+	 */
+	private char csvQuote = '"';
+	
+	/**
+	 * Record separator for the csv file
+	 */
+	private String csvRecordSeparator = "\n";
+		
 	
 	/**
 	 * Creates a new project with only a name.
@@ -243,6 +262,12 @@ public class Project {
 		if(this.csvFieldMapping == null) {
 			csvFieldMapping = new HashMap<>();
 		}
+		if (this.csvQuote == this.csvDelimiter ) {
+			this.csvQuote = '"';
+			this.csvDelimiter = ';';
+		}
+		if (this.csvRecordSeparator == null )
+			this.csvRecordSeparator = "\n";
 	}
 
 	public void removeFont(String fontName) {
@@ -298,6 +323,42 @@ public class Project {
 
 	public Font getFont(String font) {
 		return this.fonts.get(font);
+	}
+	
+	public CSVFormat getCSVFormat() {
+		return CSVFormat.newFormat(this.csvDelimiter).withQuote(this.csvQuote).withRecordSeparator(this.csvRecordSeparator).withFirstRecordAsHeader();
+	}
+	
+	public char getCsvDelimiter() {
+		return csvDelimiter;
+	}
+	
+	public Map<String, String> getCsvFieldMapping() {
+		return csvFieldMapping;
+	}
+	
+	public char getCsvQuote() {
+		return csvQuote;
+	}
+	
+	public String getCsvRecordSeparator() {
+		return csvRecordSeparator;
+	}
+	
+	public void setCsvDelimiter(char csvDelimiter) {
+		this.csvDelimiter = csvDelimiter;
+	}
+	
+	public void setCsvFieldMapping(Map<String, String> csvFieldMapping) {
+		this.csvFieldMapping = csvFieldMapping;
+	}
+	
+	public void setCsvQuote(char csvQuote) {
+		this.csvQuote = csvQuote;
+	}
+	
+	public void setCsvRecordSeparator(String csvRecordSeparator) {
+		this.csvRecordSeparator = csvRecordSeparator;
 	}
 
 }

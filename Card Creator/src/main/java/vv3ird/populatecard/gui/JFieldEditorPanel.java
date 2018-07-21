@@ -16,6 +16,7 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
+import vv3ird.populatecard.CardCreator;
 import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Field.CardSide;
@@ -29,7 +30,7 @@ public class JFieldEditorPanel extends JPanel {
 	private JSpinner spinnerWidth;
 	private JSpinner spinnerHeight;
 	private Field field;
-	private Project p;
+//	private Project p;
 	private JSpinner spinnerFontSize;
 	private JComboBox<String> cbFont;
 	private JComboBox<Field.FieldType> cbFieldType;
@@ -41,9 +42,9 @@ public class JFieldEditorPanel extends JPanel {
 	/**
 	 * Create the panel.
 	 */
-	public JFieldEditorPanel(Field field, Project p) {
+	public JFieldEditorPanel(Field field) {
 		this.field = field;
-		this.p = p;
+//		this.p = p;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setPreferredSize(new Dimension(360, 240));
 		setMaximumSize(new Dimension(360, 240));
@@ -208,7 +209,7 @@ public class JFieldEditorPanel extends JPanel {
 		
 		Component rigidArea_10 = Box.createRigidArea(new Dimension(29, 20));
 		horizontalBox_4.add(rigidArea_10);
-		String[] fonts = getFonts();
+		String[] fonts = CardCreator.getFontNames();//getFonts();
 		cbFont = new JComboBox<>(fonts);
 		cbFont.setPreferredSize(new Dimension(120, 20));
 		cbFont.setMaximumSize(new Dimension(120, 20));
@@ -348,19 +349,19 @@ public class JFieldEditorPanel extends JPanel {
 		chbxIndented.setSelected(field.isIndented());
 		chbxResize.setSelected(field.resizeText());
 	}
-
-	private String[] getFonts() {
-		String[] systemFonts = ProjectManager.getSystemFonts();
-		List<String> projectFonts = new LinkedList<>(p.getFonts().keySet());
-		String[] fontList = new String[projectFonts.size() + systemFonts.length];
-		for (int i = 0; i < fontList.length; i++) {
-			if (i < projectFonts.size()) 
-				fontList[i] = projectFonts.get(i);
-			else
-				fontList[i] = systemFonts[i-projectFonts.size()];
-		}
-		return fontList;
-	}
+//
+//	private String[] getFontsa() {
+//		String[] fonts = CardCreator.getFonts().keySet().toArray(new String[0]);
+////		List<String> projectFonts = new LinkedList<>(p.getFonts().keySet());
+////		String[] fontList = new String[projectFonts.size() + systemFonts.length];
+////		for (int i = 0; i < fontList.length; i++) {
+////			if (i < projectFonts.size()) 
+////				fontList[i] = projectFonts.get(i);
+////			else
+////				fontList[i] = systemFonts[i-projectFonts.size()];
+////		}
+//		return fonts;
+//	}
 
 	public void resetField() {
 		setField(this.field);
