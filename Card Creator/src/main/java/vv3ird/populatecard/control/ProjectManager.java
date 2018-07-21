@@ -439,14 +439,16 @@ public class ProjectManager {
 					Project p = Project.load(projectFile);
 					targetRoot = Paths.get("projects", p.getName());
 					int i = 0;
+					boolean renamedProject = false;
 					while (Files.exists(targetRoot)) {
 						targetRoot = Paths.get("projects", p.getName() + "_" + ++i);
+						renamedProject = true;
 					}
 					System.out.println("Source Root: " + sourceRoot);
 					System.out.println("Target Root: " + targetRoot);
 					Files.createDirectories(targetRoot);
 					Files.walkFileTree(sourceRoot, new CopyFileVisitor(targetRoot));
-					targetProject = Paths.get("projects", p.getName() + "_" + i, projectFile.getFileName().toString());
+					targetProject = Paths.get("projects", p.getName() + (renamedProject ? "_" + i : ""), projectFile.getFileName().toString());
 				}
 				return targetProject;
 			}
