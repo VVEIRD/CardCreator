@@ -37,6 +37,8 @@ public class CardCreator {
 
 	
 	public static void openProject(String projectFile) throws IOException {
+		if (Paths.get(projectFile).toAbsolutePath().toString().startsWith(CardCreator.getBaseFolder().toAbsolutePath().toString()))
+			projectFile = CardCreator.getBaseFolder().relativize(Paths.get(projectFile).toAbsolutePath()).toString();
 		currentProject = ProjectManager.openProject(projectFile.toString());
 	}
 	
