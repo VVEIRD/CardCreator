@@ -437,7 +437,7 @@ public class ProjectManager {
 				Path projectFile = Files.list(sourceRoot).filter(p -> p.getFileName().toString().endsWith(".cmp") || p.getFileName().toString().endsWith(".cmpz")).findFirst().orElse(null);
 				if (projectFile != null) {
 					Project p = Project.load(projectFile);
-					targetRoot = Paths.get("project", p.getName());
+					targetRoot = Paths.get("projects", p.getName());
 					int i = 0;
 					while (Files.exists(targetRoot)) {
 						targetRoot = Paths.get("projects", p.getName() + "_" + ++i);
