@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -345,5 +346,10 @@ public class CardCreator {
 
 	public static Map<String, Font> getProjectFonts() {
 		return currentProject != null ? currentProject.getFonts() : null;
+	}
+
+
+	public static Path getBaseFolder() {
+		return Paths.get(System.getProperty("user.dir"));
 	}
 }

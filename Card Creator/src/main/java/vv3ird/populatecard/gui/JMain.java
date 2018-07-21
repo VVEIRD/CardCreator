@@ -158,7 +158,11 @@ public class JMain extends JFrame {
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedProject = chooser.getSelectedFile().toPath();
-						openProject(selectedProject.toString());
+						String projectPath = selectedProject.toString();
+						if (selectedProject.toAbsolutePath().toString().startsWith(CardCreator.getBaseFolder().toAbsolutePath().toString()))
+							projectPath = CardCreator.getBaseFolder().relativize(selectedProject).toString();
+						System.out.println("Open Project: " + projectPath);
+						openProject(projectPath);
 					}
 				} catch (Exception e2) {
 					e2.printStackTrace();

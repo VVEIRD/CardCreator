@@ -111,7 +111,7 @@ public class ProjectManager {
 		Path projectCsv = Files.list(Paths.get(projectRoot.toString(), "csv")).filter(f -> f.toString().endsWith(".csv") && Files.isRegularFile(f)).findFirst().orElse(null);
 		if (projectCsv != null && Files.exists(projectCsv)) {
 			CSVFormat format = p.getCSVFormat();
-			try (InputStream is = Files.newInputStream(projectCsv); Reader in = new InputStreamReader(is); CSVParser parser = new CSVParser(in, format);) {
+			try (InputStream is = Files.newInputStream(projectCsv); Reader in = new InputStreamReader(is, StandardCharsets.UTF_8); CSVParser parser = new CSVParser(in, format);) {
 				List<CSVRecord> records = parser.getRecords();
 				Map<String, Integer> headerMap = parser.getHeaderMap();
 				String[][] csvData = new String[(int) parser.getRecordNumber()][];
@@ -261,7 +261,7 @@ public class ProjectManager {
 		if(Files.exists(csvPath)) {
 			CSVFormat format = project.getCSVFormat();
 			try (InputStream is = Files.newInputStream(csvPath);
-					Reader in = new InputStreamReader(is);
+					Reader in = new InputStreamReader(is, StandardCharsets.UTF_8);
 					CSVParser parser = new CSVParser(in, format);) {
 				Map<String, Integer> headerMap = parser.getHeaderMap();
 				System.out.println("Columns:");
@@ -289,7 +289,7 @@ public class ProjectManager {
 			if(csvValid) {
 				CSVPrinter csvPrinter = null;
 				try (InputStream is = Files.newInputStream(csvPath);
-						Reader in = new InputStreamReader(is);
+						Reader in = new InputStreamReader(is, StandardCharsets.UTF_8);
 						CSVParser parser = new CSVParser(in, format);) {
 					Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", "data.csv");
 					BufferedWriter br = Files.newBufferedWriter(projectCsv, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
