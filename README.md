@@ -20,13 +20,13 @@ This project is for creating the front and backside image of cards with help of 
       - If the text should be resized to fit the field width.
 5. Import csv file (ATM locked to ';' as field delimiter, '"' for Text enclosure.)
    - CSV columns can contain images by including the following:
-     - Start tag -img: and the end tag :img-, e.g. -img:/home/bla/img.png:img-
-     - Start tag -imgb: and end tag :imgb- for base64-encoded images, e.g. -imgb:BASE64_ENCODED_IMG:imgb-
+     - Start tag <img>: and the end tag </img>, e.g. <img>/home/bla/img.png</img>
+     - Start tag <imgb> and end tag </imgb> for base64-encoded images, e.g. <imgb>BASE64_ENCODED_IMG</imgb>
+   - Text can now be __bold__ and _italic_ aswell as **_bold and itallic_**. Use the Tags <b></b> for bold and <i></i> for italic
    - CSV columns can contain linebreaks that are splitting paragraphs by using '-n-', e.g. This is the first paragraph.-n-This is the second paragraph.
 6. Map fields to csv columns
 7. Create the cards
 
 **ToDo**
 
-- [ ] Implementing the image content
-- [ ] ???
+- [x] Implementing the image content (Not tested yet)
