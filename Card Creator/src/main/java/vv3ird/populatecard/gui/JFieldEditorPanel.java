@@ -55,7 +55,7 @@ public class JFieldEditorPanel extends JPanel {
 		JLabel lblName = new JLabel("Name:");
 		horizontalBox_6.add(lblName);
 		
-		tfName = new JTextField();
+		tfName = new JTextField(field != null ? field.getName() : "");
 		tfName.setPreferredSize(new Dimension(100, 20));
 		tfName.setMaximumSize(new Dimension(100, 20));
 		horizontalBox_6.add(tfName);
@@ -88,7 +88,7 @@ public class JFieldEditorPanel extends JPanel {
 		spinnerPointX.setModel(new SpinnerNumberModel(0, 0, 9999, 1));
 		spinnerPointX.setPreferredSize(new Dimension(100, 20));
 		spinnerPointX.setMaximumSize(new Dimension(100, 20));
-		spinnerPointX.setValue(field.getRect().getX());
+		spinnerPointX.setValue((int)field.getRect().getX());
 		horizontalBox.add(spinnerPointX);
 		
 		Component rigidArea_2 = Box.createRigidArea(new Dimension(45, 20));
@@ -103,7 +103,7 @@ public class JFieldEditorPanel extends JPanel {
 		spinnerPointY.setModel(new SpinnerNumberModel(0, 0, 9999, 1));
 		spinnerPointY.setPreferredSize(new Dimension(100, 20));
 		spinnerPointY.setMaximumSize(new Dimension(100, 20));
-		spinnerPointY.setValue(field.getRect().getY());
+		spinnerPointY.setValue((int)field.getRect().getY());
 		horizontalBox.add(spinnerPointY);
 		CardSide[] sides = Field.CardSide.values();
 		
@@ -126,7 +126,7 @@ public class JFieldEditorPanel extends JPanel {
 		spinnerWidth.setModel(new SpinnerNumberModel(0, 0, 9999, 1));
 		spinnerWidth.setPreferredSize(new Dimension(100, 20));
 		spinnerWidth.setMaximumSize(new Dimension(100, 20));
-		spinnerWidth.setValue(field.getRect().getWidth());
+		spinnerWidth.setValue((int) field.getRect().getWidth());
 		horizontalBox_1.add(spinnerWidth);
 		
 		Component rigidArea_6 = Box.createRigidArea(new Dimension(20, 20));
@@ -139,7 +139,7 @@ public class JFieldEditorPanel extends JPanel {
 		horizontalBox_1.add(rigidArea_7);
 		spinnerHeight = new JSpinner();
 		spinnerHeight.setModel(new SpinnerNumberModel(0, null, 9999, 1));
-		spinnerHeight.setValue(field.getRect().getHeight());
+		spinnerHeight.setValue((int) field.getRect().getHeight());
 		spinnerHeight.setPreferredSize(new Dimension(100, 20));
 		spinnerHeight.setMaximumSize(new Dimension(100, 20));
 		horizontalBox_1.add(spinnerHeight);
@@ -295,7 +295,7 @@ public class JFieldEditorPanel extends JPanel {
 	private void setFont(String font) {
 		DefaultComboBoxModel<String> model = ((DefaultComboBoxModel<String>)cbFont.getModel());
 		int s = model.getSize();
-		int selectedIdx = -1;
+		int selectedIdx = 0;
 		if (font != null)
 			for(int i=0;i<s&&selectedIdx<0;i++) {
 				if (font.equals(model.getElementAt(i))) {

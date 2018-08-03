@@ -11,8 +11,10 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -68,6 +70,10 @@ public class Field {
 	}
 
 	public Field(String name, Dimension pos1, Dimension pos2, Color outlineColor, CardSide side, FieldType type, String fontName, int fontSize, Field linkedField) {
+		this(name, pos1, pos2, outlineColor, side, type, fontName, fontSize, null, true);
+	}
+		
+	public Field(String name, Dimension pos1, Dimension pos2, Color outlineColor, CardSide side, FieldType type, String fontName, int fontSize, Field linkedField, boolean indented) {
 		this.name = name;
 		this.side = side;
 		this.type = type;
@@ -80,6 +86,7 @@ public class Field {
 		this.color = outlineColor;
 		this.font = fontName;
 		this.fontSize = fontSize;
+		this.indented = indented;
 	}
 
 	public void drawRect(Graphics g, Font font) {
@@ -254,7 +261,7 @@ public class Field {
 
 	public void drawContent(Graphics2D gFront, Graphics2D gRear, String text, Font font) {
 		if(this.getType() == FieldType.IMAGE)  {
-			if(!ProjectManager.containsImageLink(text))
+			if(!ProjectManager.containsImageLink(text) && !ProjectManager.isBase64Image(text))
 				text = "<img>" + text + "</img>";
 			drawImage(gFront, gRear, text, font);
 		}
@@ -265,53 +272,159 @@ public class Field {
 	}
 	
 	
-	protected void drawParagraphs(Graphics2D gFront, Graphics2D gRear, List<String> paragraphs, Font font) {
+	protected void drawParagraphs(Graphics2D gFront, Graphics2D gRear, List<String> paragraphs, Font fnt) {
 		Graphics2D g = this.getSide() == CardSide.FRONT ? gFront : gRear;
-		font = font.deriveFont(this.style, fontSize);
-		g.setFont(font);
+		Map<Integer, Font> fonts = new HashMap<>();
+		Map<Integer, FontMetrics> metrics = new HashMap<>();
+		fnt = fnt.deriveFont(this.style, fontSize);
+		Font plainFont = fnt;
+		fonts.put(Font.PLAIN, plainFont);
+		fonts.put(Font.BOLD, plainFont.deriveFont(Font.BOLD, fontSize));
+		fonts.put(Font.ITALIC, plainFont.deriveFont(Font.ITALIC, fontSize));
+		fonts.put(Font.ITALIC | Font.BOLD, plainFont.deriveFont(Font.BOLD | Font.ITALIC, fontSize));
+		metrics.put(Font.PLAIN, g.getFontMetrics(fonts.get(Font.PLAIN)));
+		metrics.put(Font.BOLD, g.getFontMetrics(fonts.get(Font.BOLD)));
+		metrics.put(Font.ITALIC, g.getFontMetrics(fonts.get(Font.ITALIC)));
+		metrics.put(Font.ITALIC | Font.BOLD, g.getFontMetrics(fonts.get(Font.ITALIC | Font.BOLD)));
+		Font activeFont = plainFont;
+		g.setFont(activeFont);
 		g.setRenderingHint(
 		        RenderingHints.KEY_TEXT_ANTIALIASING,
 		        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		FontMetrics metrics = g.getFontMetrics(font);
 		int width = this.rect.width;
-		int lineHeight = metrics.getHeight();
+		int lineHeight = metrics.get(Font.PLAIN).getHeight();
 		List<String> drawnLines = new LinkedList<>();
 		List<String> drawnParagraphs = new LinkedList<>();
 		int imageHeightOffset = 0;
+		// Flag to indicate to use bold font
+		int fontStyle = Font.PLAIN;
 		for (String paragraph : paragraphs) {
 			// Prepare paragraph to be drawn on surface
 			String textToDraw = paragraph;
 			if (resizeText) {
-				while (metrics.stringWidth(textToDraw.replace("\t", TAB_SPACING)) > width) {
-					font = font.deriveFont(style, font.getSize()-1);
-					g.setFont(font);
-					metrics = g.getFontMetrics(font);
-					lineHeight = metrics.getHeight();
+				// calc string width
+				char[] calcString = textToDraw.replace("\t", TAB_SPACING).toCharArray();
+				int stringWidth = 0;
+				int fontCalc = fontStyle;
+				for (int i = 0; i < calcString.length; i++) {
+					// Check for bold
+					if (calcString[i] == '<' && this.startsAt(calcString, i, "<b>".toCharArray())) {
+						fontCalc = Font.BOLD | (fontCalc & Font.ITALIC);
+						i += 3;
+					}
+					else if (calcString[i] == '<' && this.startsAt(calcString, i, "</b>".toCharArray())) {
+						fontCalc &= Font.ITALIC;
+						i += 4;
+					}
+					// check for italic
+					if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "<i>".toCharArray())) {
+						fontCalc = Font.ITALIC | (fontCalc & Font.BOLD);
+						i += 3;
+					}
+					else if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "</i>".toCharArray())) {
+						fontCalc &= Font.BOLD;
+						i += 4;
+					}
+
+					if (i < calcString.length)
+						stringWidth += metrics.get(fontCalc).stringWidth(String.valueOf(calcString[i]));
+				}
+				while (stringWidth > width) {
+					plainFont = plainFont.deriveFont(Font.PLAIN, plainFont.getSize()-1);
+					fonts.put(Font.PLAIN, plainFont);
+					fonts.put(Font.BOLD, plainFont.deriveFont(Font.BOLD, fontSize));
+					fonts.put(Font.ITALIC, plainFont.deriveFont(Font.ITALIC, fontSize));
+					fonts.put(Font.ITALIC | Font.BOLD, plainFont.deriveFont(Font.BOLD | Font.ITALIC, fontSize));
+					metrics.put(Font.PLAIN, g.getFontMetrics(fonts.get(Font.PLAIN)));
+					metrics.put(Font.BOLD, g.getFontMetrics(fonts.get(Font.BOLD)));
+					metrics.put(Font.ITALIC, g.getFontMetrics(fonts.get(Font.ITALIC)));
+					metrics.put(Font.ITALIC | Font.BOLD, g.getFontMetrics(fonts.get(Font.ITALIC | Font.BOLD)));
+					activeFont = plainFont;
+					g.setFont(plainFont);
+					lineHeight = metrics.get(Font.PLAIN).getHeight();
+					stringWidth = 0;
+					fontCalc = fontStyle;
+					for (int i = 0; i < calcString.length; i++) {
+						// check for bold
+						if (calcString[i] == '<' && this.startsAt(calcString, i, "<b>".toCharArray())) {
+							fontCalc = Font.BOLD | (fontCalc & Font.ITALIC);
+							i += 3;
+						}
+						else if (calcString[i] == '<' && this.startsAt(calcString, i, "</b>".toCharArray())) {
+							fontCalc &= Font.ITALIC;
+							i += 4;
+						}
+						// check for italic
+						if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "<i>".toCharArray())) {
+							fontCalc = Font.ITALIC | (fontCalc & Font.BOLD);
+							i += 3;
+						}
+						else if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "</i>".toCharArray())) {
+							fontCalc &= Font.BOLD;
+							i += 4;
+						}
+						if (i < calcString.length)
+							stringWidth += metrics.get(fontCalc).stringWidth(String.valueOf(calcString[i]));
+					}
 				}
 					
 			}
 			List<String> lines = new LinkedList<>();
 			String[] arr = textToDraw.split(" ");
+			int[] wordWidth = new int[arr.length];
+			int fontCalc = fontStyle;
+			for (int f = 0; f < wordWidth.length; f++) {
+				char[] calcString = arr[f].replace("\t", TAB_SPACING).replace("-$-", "").toCharArray();
+				int stringWidth = 0;
+				for (int i = 0; i < calcString.length; i++) {
+					// check for bold
+					if (calcString[i] == '<' && this.startsAt(calcString, i, "<b>".toCharArray())) {
+						fontCalc = Font.BOLD | (fontCalc & Font.ITALIC);
+						i += 3;
+					}
+					else if (calcString[i] == '<' && this.startsAt(calcString, i, "</b>".toCharArray())) {
+						fontCalc &= Font.ITALIC;
+						i += 4;
+					}
+					// check for italic
+					if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "<i>".toCharArray())) {
+						fontCalc = Font.ITALIC | (fontCalc & Font.BOLD);
+						i += 3;
+					}
+					else if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "</i>".toCharArray())) {
+						fontCalc &= Font.BOLD;
+						i += 4;
+					}
+					if (i < calcString.length)
+						stringWidth += metrics.get(fontCalc).stringWidth(String.valueOf(calcString[i]));
+				}
+				wordWidth[f] = stringWidth;
+			}
 			String line = "";
-			int tabLength = metrics.stringWidth(TAB_SPACING);
+			int lineWidth = 0;
+			int spaceWidth = metrics.get(Font.PLAIN).stringWidth(" ");
+			int tabLength = metrics.get(Font.PLAIN).stringWidth(TAB_SPACING);
 			// Split paragraph into lines depending on Field width
 			for (int i = 0; i < arr.length; i++) {
-				if (metrics.stringWidth((line + (!line.isEmpty() ? " " : "" )  + arr[i]).replace("\t", TAB_SPACING).replace("-$-", "")) < width) {
+				//if (metrics.stringWidth((line + (!line.isEmpty() ? " " : "" )  + arr[i]).replace("\t", TAB_SPACING).replace("-$-", "")) < width) {
+				if (lineWidth + (lineWidth > 0 ? spaceWidth : 0) + wordWidth[i] < width) {
 					line += (!line.isEmpty() ? " " : "" ) + arr[i];
+					lineWidth += (lineWidth > 0 ? spaceWidth : 0) + wordWidth[i];
 				} else {
 					if(!line.isEmpty())
 						lines.add(line.charAt(0) == ' ' ? line.substring(1) : line);
 					line = (!line.isEmpty() ? " " : "" ) + arr[i];
+					lineWidth = wordWidth[i];
 				}
 			}
-			if (!line.isEmpty()) {
+			if (!line.isEmpty() && !line.equals(" ")) {
 				lines.add(line.charAt(0) == ' ' ? line.substring(1) : line);
 			}
 			drawnParagraphs.add(paragraph);
 			// Draw lines on surface, continue overspilling text onto linked fields if possible.
-			int y = metrics.getAscent() + 2 + (lineHeight * drawnLines.size());
+			int y = metrics.get(fontStyle).getAscent() + 2 + (lineHeight * drawnLines.size());
 			if (this.verticalAlignment == VerticalTextAlignment.TEXT_CENTER) {
-				y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent() + 2;
+				y = ((rect.height - metrics.get(fontStyle).getHeight()) / 2) + metrics.get(fontStyle).getAscent() + 2;
 				if (drawnLines.size() > 1)
 					y = y - ((lineHeight * (drawnLines.size() - 1) / 2));
 				if (y<0)
@@ -321,24 +434,80 @@ public class Field {
 			// Determine the Y coordinate for the text (note we add the ascent, as in java
 			// 2d 0 is top of the screen)
 			// int y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
+			
 			for (String l : lines) {
 				String orgLine = l;
 				boolean endOfParagraph = l.endsWith("-$-");
 				if(endOfParagraph)
 					l = l.substring(0, l.lastIndexOf("-$-"));
 				String[] words = l.split(" ");
+				char[] calcString = l.replace(" ", "").replace("-$-", "").toCharArray();
+				int lineWordWidth = 0;
+				fontCalc = fontStyle;
+				// Calculate width of all words
+				for (int i = 0; i < calcString.length; i++) {
+					// check for bold
+					if (calcString[i] == '<' && this.startsAt(calcString, i, "<b>".toCharArray())) {
+						fontCalc = Font.BOLD | (fontCalc & Font.ITALIC);
+						i += 3;
+					}
+					else if (calcString[i] == '<' && this.startsAt(calcString, i, "</b>".toCharArray())) {
+						fontCalc &= Font.ITALIC;
+						i += 4;
+					}
+					// check for italic
+					if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "<i>".toCharArray())) {
+						fontCalc = Font.ITALIC | (fontCalc & Font.BOLD);
+						i += 3;
+					}
+					else if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "</i>".toCharArray())) {
+						fontCalc &= Font.BOLD;
+						i += 4;
+					}
+					if (i < calcString.length && calcString[i] == '\t')
+						lineWordWidth += tabLength;
+					else if (i < calcString.length)
+						lineWordWidth += metrics.get(fontCalc).stringWidth(String.valueOf(calcString[i]));
+				}
+				// calculate line width
+				calcString = l.toCharArray();
+				lineWidth = 0;
+				fontCalc = fontStyle;
+				for (int i = 0; i < calcString.length; i++) {
+					// check for bold
+					if (calcString[i] == '<' && this.startsAt(calcString, i, "<b>".toCharArray())) {
+						fontCalc = Font.BOLD | (fontCalc & Font.ITALIC);
+						i += 3;
+					}
+					else if (calcString[i] == '<' && this.startsAt(calcString, i, "</b>".toCharArray())) {
+						fontCalc &= Font.ITALIC;
+						i += 4;
+					}
+					// check for italic
+					if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "<i>".toCharArray())) {
+						fontCalc = Font.ITALIC | (fontCalc & Font.BOLD);
+						i += 3;
+					}
+					else if (i < calcString.length && calcString[i] == '<' && this.startsAt(calcString, i, "</i>".toCharArray())) {
+						fontCalc &= Font.BOLD;
+						i += 4;
+					}
+					if (calcString[i] == '\t')
+						lineWidth += tabLength;
+					else
+						lineWidth += metrics.get(fontCalc).stringWidth(String.valueOf(calcString[i]));
+				}
 				// set linestart depending on set text alignment, default is left aligned
 				int lineStart = 0;
 				if (this.type == Field.FieldType.TEXT_CENTER)
-					lineStart = (rect.width - metrics.stringWidth(l)) / 2;
+					lineStart = (rect.width - lineWidth) / 2;
 				else if (this.type == Field.FieldType.TEXT_RIGHT)
-					lineStart = (rect.width - metrics.stringWidth(l));
-				int spacing = metrics.stringWidth(" ");
+					lineStart = (rect.width - lineWidth);
+				int spacing = metrics.get(Font.PLAIN).stringWidth(" ");
 				if (this.type == Field.FieldType.TEXT_BLOCK) {
-					int wordsLength = metrics.stringWidth(Arrays.asList(words).stream().collect(Collectors.joining()).replace("\t", TAB_SPACING));
-					spacing = (rect.width-wordsLength)/(words.length >1 ? words.length-1 : words.length);
-					if (wordsLength + metrics.stringWidth(" ")*words.length < rect.width*0.60f || endOfParagraph)
-						spacing = metrics.stringWidth(" ");
+					spacing = (rect.width-lineWordWidth)/(words.length >1 ? words.length-1 : words.length);
+					if (lineWordWidth + spaceWidth*words.length < rect.width*0.60f || endOfParagraph)
+						spacing = spaceWidth;
 				}
 				if(ProjectManager.isBase64Image(l)) {
 					BufferedImage bimg = ProjectManager.decodeImageFromBase64(l.substring(6, l.lastIndexOf("</imgb>")));
@@ -356,11 +525,44 @@ public class Field {
 				}
 				else {
 					// Draw word for word with the correct spacing
-					int wordsWidth = 0;
-					for (int i = 0; i < words.length; i++) {
-						g.drawString(words[i].replace("\t", ""), (words[i].contains("\t") ? tabLength : 0) + rect.x + lineStart + wordsWidth + (i*spacing), rect.y + y + imageHeightOffset);
-						wordsWidth += metrics.stringWidth(words[i].replace("\t", "")) + (words[i].contains("\t") ? tabLength : 0);
+					int caret = 0;
+					System.out.println("Line: \"" + l + "\"");
+					char[] lineArray = l.toCharArray();
+					for (int i = 0; i < lineArray.length; i++) {
+						// check for bold
+						if (lineArray[i] == '<' && this.startsAt(lineArray, i, "<b>".toCharArray())) {
+							fontStyle = Font.BOLD | (fontStyle & Font.ITALIC);
+							i += 3;
+						}
+						else if (lineArray[i] == '<' && this.startsAt(lineArray, i, "</b>".toCharArray())) {
+							fontStyle &= Font.ITALIC;
+							i += 4;
+						}
+						// check for italic
+						if (i < lineArray.length && lineArray[i] == '<' && this.startsAt(lineArray, i, "<i>".toCharArray())) {
+							fontStyle = Font.ITALIC | (fontStyle & Font.BOLD);
+							i += 3;
+						}
+						else if (i < lineArray.length && lineArray[i] == '<' && this.startsAt(lineArray, i, "</i>".toCharArray())) {
+							fontStyle &= Font.BOLD;
+							i += 4;
+						}
+						g.setFont(fonts.get(fontStyle));
+						if (i >= lineArray.length)
+							break;
+						if(lineArray[i] == ' ')
+							caret += spacing;
+						else if (lineArray[i] == '\t')
+							caret += tabLength;
+						else {
+							g.drawString(String.valueOf(lineArray[i]), rect.x + lineStart + caret, rect.y + y + imageHeightOffset);
+							caret += metrics.get(fontStyle).stringWidth(String.valueOf(lineArray[i]));
+						}
 					}
+//					for (int i = 0; i < words.length; i++) {
+//						g.drawString(words[i].replace("\t", ""), (words[i].contains("\t") ? tabLength : 0) + rect.x + lineStart + wordsWidth + (i*spacing), rect.y + y + imageHeightOffset);
+//						wordsWidth += metrics.stringWidth(words[i].replace("\t", "")) + (words[i].contains("\t") ? tabLength : 0);
+//					}
 					drawnLines.add(orgLine);
 					y += lineHeight;
 				}
@@ -371,13 +573,21 @@ public class Field {
 					linesToCopyOver.addAll(lines);
 					linesToCopyOver.removeAll(drawnLines);
 					String restParagraph = linesToCopyOver.stream().collect(Collectors.joining(" "));
+					if (!restParagraph.isEmpty())
+						restParagraph = ((fontStyle & Font.BOLD) == Font.BOLD ? "<b>" : "") + ((fontStyle & Font.ITALIC) == Font.ITALIC ? "<i>" : "") + restParagraph; 
 					List<String> paragraphsToCopyOver = new LinkedList<>();
 					List<String> restParagraphs = new LinkedList<>();
 					paragraphsToCopyOver.add(restParagraph);
 					restParagraphs.addAll(paragraphs);
 					restParagraphs.removeAll(drawnParagraphs);
+					// If there is no rest paragraph add the flags for bold and italic to the next paragraph
+					if (restParagraph.isEmpty() && restParagraphs.size() > 0) {
+						String nextParagraph = restParagraphs.remove(0);
+						nextParagraph = ((fontStyle & Font.BOLD) == Font.BOLD ? "<b>" : "") + ((fontStyle & Font.ITALIC) == Font.ITALIC ? "<i>" : "") + nextParagraph;
+						paragraphsToCopyOver.add(nextParagraph);
+					}
 					paragraphsToCopyOver.addAll(restParagraphs);
-					this.getLinkedField().drawParagraphs(gFront, gRear, paragraphsToCopyOver, font);
+					this.getLinkedField().drawParagraphs(gFront, gRear, paragraphsToCopyOver, plainFont);
 					return;
 				}
 				else if ((y+imageHeightOffset) > rect.height) {
@@ -388,12 +598,27 @@ public class Field {
 		
 	}
 	
+	private boolean startsAt(char[] calcString, int i, char[] charArray) {
+		boolean startsWith = true;
+		if (calcString.length < i + charArray.length)
+			startsWith = false;
+		else {
+			for (int j = 0; j < charArray.length; j++) {
+				if (calcString[i+j] != charArray[j]) {
+					startsWith = false;
+					break;
+				}
+			}
+		}
+		return startsWith;
+	}
+
 	public void drawImage(Graphics2D gFront, Graphics2D gRear, String content, Font font) {
 		Graphics2D g = this.getSide() == CardSide.FRONT ? gFront : gRear;
 		if(ProjectManager.containsImageLink(content))
 			content = ProjectManager.processMediaEntry(content);
-		if(ProjectManager.isBase64Image(content)) {
-			BufferedImage bimg = ProjectManager.decodeImageFromBase64(content.substring(6, content.lastIndexOf("</imgb>")));
+		if(ProjectManager.isBase64Image(content.trim())) {
+			BufferedImage bimg = ProjectManager.decodeImageFromBase64(content.trim().substring(6, content.trim().lastIndexOf("</imgb>")));
 			if(bimg != null) {
 				int height = (int) ((((float)rect.getWidth())/bimg.getWidth())* bimg.getHeight());
 				int width = (int)rect.getWidth();
@@ -441,7 +666,7 @@ public class Field {
 	}
 	
 	public Field clone() {
-		return new Field(name, new Dimension(rect.x, rect.y), new Dimension(rect.x+rect.width, rect.y + rect.height), color, side, type, font, fontSize, linkedField);
+		return new Field(name, new Dimension(rect.x, rect.y), new Dimension(rect.x+rect.width, rect.y + rect.height), color, side, type, font, fontSize, linkedField, indented);
 	}
 
 	public static enum CardSide {

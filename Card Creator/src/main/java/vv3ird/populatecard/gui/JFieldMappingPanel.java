@@ -51,8 +51,9 @@ import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.FieldPackage;
 import vv3ird.populatecard.data.Project;
+import javax.swing.JCheckBox;
 
-public class JCardMapperPanel extends JPanel {
+public class JFieldMappingPanel extends JPanel {
 
 	private static final long serialVersionUID = 6755160427559608684L;
 
@@ -62,17 +63,21 @@ public class JCardMapperPanel extends JPanel {
 
 	private JLabel pnFront;
 
-	private JLabel pnBack;
+	private JLabel pnRear;
 
 	private DefaultMutableTreeNode fieldRoot = null;
 
-	private BufferedImage orgFront = null;
-	private BufferedImage b1Front = null;
-	private BufferedImage b2Front = null;
+	private BufferedImage front = null;
+	private BufferedImage frontBuffer1 = null;
+	private BufferedImage frontBuffer2 = null;
+	private BufferedImage frontPreview = null;
 
-	private BufferedImage orgRear = null;
-	private BufferedImage b1Rear = null;
-	private BufferedImage b2Rear = null;
+	private BufferedImage rear = null;
+	private BufferedImage rearBuffer1 = null;
+	private BufferedImage rearBuffer2 = null;
+	private BufferedImage rearPreview = null;
+	
+	private boolean previewMode = false;
 
 	Dimension frontPos1 = null;
 	Dimension backPos1 = null;
@@ -87,14 +92,17 @@ public class JCardMapperPanel extends JPanel {
 	private JScrollPane spBack;
 	private JTree treeFields;
 	private JFieldEditorPanel fieldEditior;
+	private JCheckBox chckbxPreview;
 
 
 	/**
-	 * Create the frame.
-	 * 
-	 * @throws IOException
+	 * @wbp.parser.constructor
 	 */
-	public JCardMapperPanel(Project p) {
+	public JFieldMappingPanel(Project p) {
+		this(p, true);
+	}
+	
+	public JFieldMappingPanel(Project p, boolean frontPanel) {
 		BufferedImage frontImage = p.getFp().getFrontImage();
 		BufferedImage rearImage = p.getFp().getRearImage();
 		
@@ -113,21 +121,21 @@ public class JCardMapperPanel extends JPanel {
 		this.editor = new FieldEditor(this.fields);
 		contentPane.setLayout(new BorderLayout(0, 0));
 		// Front image
-		this.orgFront = frontImage;
-		this.b1Front = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
-		this.b2Front = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
-		Graphics g = b1Front.getGraphics();
-		Graphics g2 = b2Front.getGraphics();
+		this.front = frontImage;
+		this.frontBuffer1 = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
+		this.frontBuffer2 = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
+		Graphics g = frontBuffer1.getGraphics();
+		Graphics g2 = frontBuffer2.getGraphics();
 		g.drawImage(frontImage, 0, 0, null);
 		g.dispose();
 		g2.drawImage(frontImage, 0, 0, null);
 		g2.dispose();
 		// Back image
-		this.orgRear = rearImage;
-		this.b1Rear = new BufferedImage(rearImage.getWidth(), rearImage.getHeight(), rearImage.getType());
-		this.b2Rear = new BufferedImage(rearImage.getWidth(), rearImage.getHeight(), rearImage.getType());
-		g = b1Front.getGraphics();
-		g2 = b2Front.getGraphics();
+		this.rear = rearImage;
+		this.rearBuffer1 = new BufferedImage(rearImage.getWidth(), rearImage.getHeight(), rearImage.getType());
+		this.rearBuffer2 = new BufferedImage(rearImage.getWidth(), rearImage.getHeight(), rearImage.getType());
+		g = frontBuffer1.getGraphics();
+		g2 = frontBuffer2.getGraphics();
 		g.drawImage(rearImage, 0, 0, null);
 		g.dispose();
 		g2.drawImage(rearImage, 0, 0, null);
@@ -151,10 +159,10 @@ public class JCardMapperPanel extends JPanel {
 
 					chooser.setDialogTitle("Choose a filename");
 					chooser.setFileFilter(new FileNameExtensionFilter("CardMapper Files", new String[] { "cm" }));
-					int res = chooser.showSaveDialog(JCardMapperPanel.this);
+					int res = chooser.showSaveDialog(JFieldMappingPanel.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						File f = chooser.getSelectedFile();
-						FieldPackage fPackage = new FieldPackage(orgFront, orgRear);
+						FieldPackage fPackage = new FieldPackage(front, rear);
 						fPackage.addFields(fields);
 						fPackage.setAlternateRearImage(p.getFp().getAlternateRearImage());
 						if (!f.getAbsolutePath().endsWith(".cm"))
@@ -196,10 +204,10 @@ public class JCardMapperPanel extends JPanel {
 		JButton btnSaveResize = new JButton("Save resize");
 		btnSaveResize.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				JCardMapperPanel.this.editor.saveField();
-				JCardMapperPanel.this.setImage(orgFront, orgRear);
-				JCardMapperPanel.this.repaintImage(CardSide.FRONT);
-				JCardMapperPanel.this.repaintImage(CardSide.REAR);
+				JFieldMappingPanel.this.editor.saveField();
+				JFieldMappingPanel.this.setImage(front, rear);
+				JFieldMappingPanel.this.repaintImage(CardSide.FRONT);
+				JFieldMappingPanel.this.repaintImage(CardSide.REAR);
 				btnSaveResize.setEnabled(false);
 			}
 		});
@@ -210,6 +218,19 @@ public class JCardMapperPanel extends JPanel {
 		JLabel label_2 = new JLabel(" ");
 		panel_1.add(label_2);
 		
+		Component horizontalStrut_2 = Box.createHorizontalStrut(15);
+		panel_1.add(horizontalStrut_2);
+		
+		chckbxPreview = new JCheckBox("Preview");
+		chckbxPreview.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				previewMode = chckbxPreview.isSelected();
+				updatePreviewMode();
+			}
+		});
+		chckbxPreview.setAlignmentY(Component.TOP_ALIGNMENT);
+		panel_1.add(chckbxPreview);
+		
 		Component horizontalGlue = Box.createHorizontalGlue();
 		panel_1.add(horizontalGlue);
 		
@@ -219,23 +240,23 @@ public class JCardMapperPanel extends JPanel {
 
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		contentPane.add(tabbedPane, BorderLayout.CENTER);
-		pnFront = new JLabel(new ImageIcon(b2Front));
+		pnFront = new JLabel(new ImageIcon(frontBuffer2));
 		pnFront.addMouseListener(new MouseListener() {
 			
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				JCardMapperPanel.this.editCorner = Corner.NONE;
-				if (JCardMapperPanel.this.editor.isEditMode()) {
-					if (!JCardMapperPanel.this.editor.editFieldContains(e.getPoint())) {
-						JCardMapperPanel.this.editor.discardEdits();
-						JCardMapperPanel.this.setImage(orgFront, orgRear);
-						JCardMapperPanel.this.repaintImage(CardSide.FRONT);
+				JFieldMappingPanel.this.editCorner = Corner.NONE;
+				if (JFieldMappingPanel.this.editor.isEditMode()) {
+					if (!JFieldMappingPanel.this.editor.editFieldContains(e.getPoint())) {
+						JFieldMappingPanel.this.editor.discardEdits();
+						JFieldMappingPanel.this.setImage(front, rear);
+						JFieldMappingPanel.this.repaintImage(CardSide.FRONT);
 						btnSaveResize.setEnabled(false);
 					}
-				} else if (!JCardMapperPanel.this.editor.isEditMode()) {
-					if (JCardMapperPanel.this.editor.editFieldContaining(e.getPoint(), CardSide.FRONT)) {
-						JCardMapperPanel.this.setImage(orgFront, orgRear);
-						JCardMapperPanel.this.repaintImage(CardSide.FRONT);
+				} else if (!JFieldMappingPanel.this.editor.isEditMode()) {
+					if (JFieldMappingPanel.this.editor.editFieldContaining(e.getPoint(), CardSide.FRONT)) {
+						JFieldMappingPanel.this.setImage(front, rear);
+						JFieldMappingPanel.this.repaintImage(CardSide.FRONT);
 						btnSaveResize.setEnabled(true);
 					} else
 						handleFieldCreation(e.getX(), e.getY(), Field.CardSide.FRONT);
@@ -244,8 +265,8 @@ public class JCardMapperPanel extends JPanel {
 
 			@Override
 			public void mousePressed(MouseEvent e) {
-				if (JCardMapperPanel.this.editor.isEditMode()) {
-					editCorner = JCardMapperPanel.this.editor.getCornerOnEditField(e.getPoint());
+				if (JFieldMappingPanel.this.editor.isEditMode()) {
+					editCorner = JFieldMappingPanel.this.editor.getCornerOnEditField(e.getPoint());
 					if(editCorner != Corner.NONE) {
 						System.out.println("Corner selected: " + editCorner);
 					}
@@ -267,23 +288,23 @@ public class JCardMapperPanel extends JPanel {
 				repaintImage(CardSide.FRONT);
 			}
 		});
-		pnBack = new JLabel(new ImageIcon(b2Rear));
-		pnBack.addMouseListener(new MouseListener() {
+		pnRear = new JLabel(new ImageIcon(rearBuffer2));
+		pnRear.addMouseListener(new MouseListener() {
 			
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				JCardMapperPanel.this.editCorner = Corner.NONE;
-				if (JCardMapperPanel.this.editor.isEditMode()) {
-					if (!JCardMapperPanel.this.editor.editFieldContains(e.getPoint())) {
-						JCardMapperPanel.this.editor.discardEdits();
-						JCardMapperPanel.this.setImage(orgFront, orgRear);
-						JCardMapperPanel.this.repaintImage(CardSide.REAR);
+				JFieldMappingPanel.this.editCorner = Corner.NONE;
+				if (JFieldMappingPanel.this.editor.isEditMode()) {
+					if (!JFieldMappingPanel.this.editor.editFieldContains(e.getPoint())) {
+						JFieldMappingPanel.this.editor.discardEdits();
+						JFieldMappingPanel.this.setImage(front, rear);
+						JFieldMappingPanel.this.repaintImage(CardSide.REAR);
 						btnSaveResize.setEnabled(false);
 					}
-				} else if (!JCardMapperPanel.this.editor.isEditMode()) {
-					if (JCardMapperPanel.this.editor.editFieldContaining(e.getPoint(), CardSide.REAR)) {
-						JCardMapperPanel.this.setImage(orgFront, orgRear);
-						JCardMapperPanel.this.repaintImage(CardSide.REAR);
+				} else if (!JFieldMappingPanel.this.editor.isEditMode()) {
+					if (JFieldMappingPanel.this.editor.editFieldContaining(e.getPoint(), CardSide.REAR)) {
+						JFieldMappingPanel.this.setImage(front, rear);
+						JFieldMappingPanel.this.repaintImage(CardSide.REAR);
 						btnSaveResize.setEnabled(true);
 					} else
 						handleFieldCreation(e.getX(), e.getY(), Field.CardSide.REAR);
@@ -292,8 +313,8 @@ public class JCardMapperPanel extends JPanel {
 
 			@Override
 			public void mousePressed(MouseEvent e) {
-				if (JCardMapperPanel.this.editor.isEditMode()) {
-					editCorner = JCardMapperPanel.this.editor.getCornerOnEditField(e.getPoint());
+				if (JFieldMappingPanel.this.editor.isEditMode()) {
+					editCorner = JFieldMappingPanel.this.editor.getCornerOnEditField(e.getPoint());
 					if(editCorner != Corner.NONE) {
 						System.out.println("Corner selected: " + editCorner);
 					}
@@ -304,7 +325,7 @@ public class JCardMapperPanel extends JPanel {
 			public void mouseEntered(MouseEvent e) {}
 			public void mouseClicked(MouseEvent e) {}
 		});
-		pnBack.addMouseMotionListener(new MouseMotionListener() {
+		pnRear.addMouseMotionListener(new MouseMotionListener() {
 			@Override
 			public void mouseMoved(MouseEvent arg0) {
 				repaintImage(CardSide.REAR);
@@ -320,17 +341,19 @@ public class JCardMapperPanel extends JPanel {
 		spFront = new JScrollPane(pnFront);
 		tabbedPane.addTab("Front", null, spFront, null);
 		spFront.getVerticalScrollBar().setUnitIncrement(16);
-		spFront.setMaximumSize(new Dimension(b1Front.getWidth(), b1Front.getHeight() < 600 ? b1Front.getHeight() : 600));
+		spFront.setMaximumSize(new Dimension(frontBuffer1.getWidth(), frontBuffer1.getHeight() < 600 ? frontBuffer1.getHeight() : 600));
 
-		spBack = new JScrollPane(pnBack);
-		spBack.setSize(new Dimension(b1Rear.getWidth(), b1Rear.getHeight() < 600 ? b1Rear.getHeight() : 600));
-		spBack.setMaximumSize(new Dimension(b1Rear.getWidth(), b1Rear.getHeight() < 600 ? b1Rear.getHeight() : 600));
+		spBack = new JScrollPane(pnRear);
+		spBack.setSize(new Dimension(rearBuffer1.getWidth(), rearBuffer1.getHeight() < 600 ? rearBuffer1.getHeight() : 600));
+		spBack.setMaximumSize(new Dimension(rearBuffer1.getWidth(), rearBuffer1.getHeight() < 600 ? rearBuffer1.getHeight() : 600));
 		spBack.getVerticalScrollBar().setUnitIncrement(16);
 		tabbedPane.addTab("Rear", null, spBack, null);
 
 		JPanel pnFields = new JPanel();
 		tabbedPane.addTab("Fields", null, pnFields, null);
 		pnFields.setLayout(new BorderLayout(0, 0));
+		
+		tabbedPane.setSelectedIndex(frontPanel ? 0 : 1);
 
 		fieldRoot = new DefaultMutableTreeNode("root");
 		JScrollPane spTree = new JScrollPane();
@@ -382,7 +405,7 @@ public class JCardMapperPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				fieldEditior.getField();
 				treeFields.repaint();
-				setImage(orgFront, orgRear);
+				setImage(front, rear);
 			}
 		});
 		
@@ -413,12 +436,12 @@ public class JCardMapperPanel extends JPanel {
 		JButton btnDeleteField = new JButton("Delete field");
 		btnDeleteField.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				boolean approve = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
+				boolean approve = JOptionPane.showConfirmDialog(JFieldMappingPanel.this,
 						"Delete field " + fieldEditior.getFieldName() + "?", "Delete field",
 						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
 				if(approve) {
 					fieldEditior.resetField();
-					JCardMapperPanel.this.fields.remove(getFieldByName(fieldEditior.getFieldName()));
+					JFieldMappingPanel.this.fields.remove(getFieldByName(fieldEditior.getFieldName()));
 					setImage(frontImage, rearImage);
 					populateFieldTree();
 				}
@@ -428,13 +451,13 @@ public class JCardMapperPanel extends JPanel {
 
 		this.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent evt) {
-				if (JCardMapperPanel.this.getWidth() > (b1Front.getWidth() < b1Rear.getWidth() ? b1Front.getWidth() : b1Rear.getWidth()))
-					JCardMapperPanel.this.setSize(new Dimension(
-							(b1Front.getWidth() < b1Rear.getWidth() ? b1Front.getWidth() : b1Rear.getWidth()),
-							JCardMapperPanel.this.getHeight()));
-				if (JCardMapperPanel.this.getHeight() > (b1Front.getHeight() < b1Rear.getHeight() ? b1Front.getHeight() : b1Rear.getHeight()))
-					JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(),
-							(b1Front.getHeight() < b1Rear.getHeight() ? b1Front.getHeight() : b1Rear.getHeight())));
+				if (JFieldMappingPanel.this.getWidth() > (frontBuffer1.getWidth() < rearBuffer1.getWidth() ? frontBuffer1.getWidth() : rearBuffer1.getWidth()))
+					JFieldMappingPanel.this.setSize(new Dimension(
+							(frontBuffer1.getWidth() < rearBuffer1.getWidth() ? frontBuffer1.getWidth() : rearBuffer1.getWidth()),
+							JFieldMappingPanel.this.getHeight()));
+				if (JFieldMappingPanel.this.getHeight() > (frontBuffer1.getHeight() < rearBuffer1.getHeight() ? frontBuffer1.getHeight() : rearBuffer1.getHeight()))
+					JFieldMappingPanel.this.setSize(new Dimension(JFieldMappingPanel.this.getWidth(),
+							(frontBuffer1.getHeight() < rearBuffer1.getHeight() ? frontBuffer1.getHeight() : rearBuffer1.getHeight())));
 			}
 		});
 		setImage(frontImage, rearImage);
@@ -454,7 +477,7 @@ public class JCardMapperPanel extends JPanel {
 		} else {
 			System.out.println(side + " X|Y Point 2: " + x + "|" + y);
 			System.out.println();
-			String name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Enter a name");
+			String name = JOptionPane.showInputDialog(JFieldMappingPanel.this, "Enter a name");
 			// Aborted
 			if (name == null)
 				return;
@@ -462,15 +485,15 @@ public class JCardMapperPanel extends JPanel {
 			boolean link = false;
 			while (checkNameForDuplicate(name) && !link || name.isEmpty()) {
 				if (name.isEmpty())
-					name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Enter a valid name");
+					name = JOptionPane.showInputDialog(JFieldMappingPanel.this, "Enter a valid name");
 				else {
-					int approve = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
+					int approve = JOptionPane.showConfirmDialog(JFieldMappingPanel.this,
 							"Name already taken, link this field to the existing?", "Choose an option",
 							JOptionPane.YES_NO_OPTION);
 					if (approve == JOptionPane.YES_OPTION)
 						link = true;
 					else
-						name = JOptionPane.showInputDialog(JCardMapperPanel.this, "Name already taken, enter a new name")
+						name = JOptionPane.showInputDialog(JFieldMappingPanel.this, "Name already taken, enter a new name")
 								.trim();
 				}
 				if (name == null)
@@ -485,7 +508,7 @@ public class JCardMapperPanel extends JPanel {
 //					Field.FieldType.values()[0]); // Initial choice
 			Field newField = new Field(name, pos1, new Dimension(x, y), rectColor, side);
 			JFieldEditorPanel fe = new JFieldEditorPanel(newField);
-			boolean ok = JOptionPane.showConfirmDialog(JCardMapperPanel.this,
+			boolean ok = JOptionPane.showConfirmDialog(JFieldMappingPanel.this,
                     fe,
                     "Create Field",
                     JOptionPane.OK_CANCEL_OPTION,
@@ -493,14 +516,14 @@ public class JCardMapperPanel extends JPanel {
 			if(ok) {
 				fe.getField();
 				if (link) {
-					Field field = JCardMapperPanel.this.getFieldByName(name);
+					Field field = JFieldMappingPanel.this.getFieldByName(name);
 					if (field != null)
 						field.setLinkedField(newField);
 					else
-						JCardMapperPanel.this.fields.add(newField);
+						JFieldMappingPanel.this.fields.add(newField);
 				} else
-					JCardMapperPanel.this.fields.add(newField);
-				Graphics2D g = side == Field.CardSide.FRONT ? b1Front.createGraphics() : b1Rear.createGraphics();
+					JFieldMappingPanel.this.fields.add(newField);
+				Graphics2D g = side == Field.CardSide.FRONT ? frontBuffer1.createGraphics() : rearBuffer1.createGraphics();
 				g.setColor(rectColor);
 				newField.drawRect(g, CardCreator.getFont(newField.getFont()));
 				g.dispose();
@@ -545,79 +568,81 @@ public class JCardMapperPanel extends JPanel {
 		
 		// Front
 		if (frontImage != null) {
-			this.orgFront = frontImage;
-			this.b1Front = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
-			this.b2Front = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
-			Graphics g = b1Front.getGraphics();
-			Graphics g2 = b2Front.getGraphics();
+			this.front = frontImage;
+			this.frontBuffer1 = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
+			this.frontBuffer2 = new BufferedImage(frontImage.getWidth(), frontImage.getHeight(), frontImage.getType());
+			Graphics g = frontBuffer1.getGraphics();
+			Graphics g2 = frontBuffer2.getGraphics();
 			g.drawImage(frontImage, 0, 0, null);
 //			for (Field f : frontFields) {
 //				g.setColor(f.getColor());
 //				f.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, f.getFont()));
 //			}
 			g.dispose();
-			this.editor.drawFields(b1Front, CardSide.FRONT, true, false);
-			g2.drawImage(b1Front, 0, 0, null);
+			this.editor.drawFields(frontBuffer1, CardSide.FRONT, true, false);
+			g2.drawImage(frontBuffer1, 0, 0, null);
 			g2.dispose();
-			this.editor.drawFields(b2Front, CardSide.FRONT, false, true);
-			this.pnFront.setIcon(new ImageIcon(b2Front));
-			pnFront.setPreferredSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
-			pnFront.setMaximumSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
-			pnFront.setSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
-			this.setMaximumSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
+			this.editor.drawFields(frontBuffer2, CardSide.FRONT, false, true);
+			this.pnFront.setIcon(new ImageIcon(frontBuffer2));
+			pnFront.setPreferredSize(new Dimension(frontBuffer2.getWidth(), frontBuffer2.getHeight()));
+			pnFront.setMaximumSize(new Dimension(frontBuffer2.getWidth(), frontBuffer2.getHeight()));
+			pnFront.setSize(new Dimension(frontBuffer2.getWidth(), frontBuffer2.getHeight()));
+			this.setMaximumSize(new Dimension(frontBuffer2.getWidth(), frontBuffer2.getHeight()));
 //			this.setSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
-			spFront.setMaximumSize(new Dimension(b1Front.getWidth(), b2Front.getHeight() < 600 ? b2Front.getHeight() : 600));
-			spFront.setSize(new Dimension(b1Front.getWidth(), b2Front.getHeight() < 600 ? b2Front.getHeight() : 600));
-			pnFront.setSize(new Dimension(b2Front.getWidth(), b2Front.getHeight()));
+			spFront.setMaximumSize(new Dimension(frontBuffer1.getWidth(), frontBuffer2.getHeight() < 600 ? frontBuffer2.getHeight() : 600));
+			spFront.setSize(new Dimension(frontBuffer1.getWidth(), frontBuffer2.getHeight() < 600 ? frontBuffer2.getHeight() : 600));
+			pnFront.setSize(new Dimension(frontBuffer2.getWidth(), frontBuffer2.getHeight()));
 			// Adjust size
-			if (JCardMapperPanel.this.getWidth() > b1Front.getWidth())
-				JCardMapperPanel.this.setSize(new Dimension(b1Front.getWidth(), JCardMapperPanel.this.getHeight()));
-			if (JCardMapperPanel.this.getHeight() > b1Front.getHeight())
-				JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(), b1Front.getHeight()));
+			if (JFieldMappingPanel.this.getWidth() > frontBuffer1.getWidth())
+				JFieldMappingPanel.this.setSize(new Dimension(frontBuffer1.getWidth(), JFieldMappingPanel.this.getHeight()));
+			if (JFieldMappingPanel.this.getHeight() > frontBuffer1.getHeight())
+				JFieldMappingPanel.this.setSize(new Dimension(JFieldMappingPanel.this.getWidth(), frontBuffer1.getHeight()));
 		}
 		// Back
 		if (backImage != null) {
-			this.orgRear = backImage;
-			this.b1Rear = new BufferedImage(backImage.getWidth(), backImage.getHeight(), backImage.getType());
-			this.b2Rear = new BufferedImage(backImage.getWidth(), backImage.getHeight(), backImage.getType());
-			Graphics g = b1Rear.getGraphics();
-			Graphics g2 = b2Rear.getGraphics();
+			this.rear = backImage;
+			this.rearBuffer1 = new BufferedImage(backImage.getWidth(), backImage.getHeight(), backImage.getType());
+			this.rearBuffer2 = new BufferedImage(backImage.getWidth(), backImage.getHeight(), backImage.getType());
+			Graphics g = rearBuffer1.getGraphics();
+			Graphics g2 = rearBuffer2.getGraphics();
 			g.drawImage(backImage, 0, 0, null);
 //			for (Field f : backFields) {
 //				g.setColor(f.getColor());
 //				f.drawRect(g, ProjectManager.getFont(JCardMapperPanel.this.p, f.getFont()));
 //			}
 			g.dispose();
-			this.editor.drawFields(b1Rear, CardSide.REAR, true, false);
-			g2.drawImage(b1Rear, 0, 0, null);
+			this.editor.drawFields(rearBuffer1, CardSide.REAR, true, false);
+			g2.drawImage(rearBuffer1, 0, 0, null);
 			g2.dispose();
-			this.pnBack.setIcon(new ImageIcon(b2Rear));
-			pnBack.setPreferredSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			pnBack.setMaximumSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			pnBack.setSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			this.setMaximumSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
+			this.pnRear.setIcon(new ImageIcon(rearBuffer2));
+			pnRear.setPreferredSize(new Dimension(rearBuffer2.getWidth(), rearBuffer2.getHeight()));
+			pnRear.setMaximumSize(new Dimension(rearBuffer2.getWidth(), rearBuffer2.getHeight()));
+			pnRear.setSize(new Dimension(rearBuffer2.getWidth(), rearBuffer2.getHeight()));
+			this.setMaximumSize(new Dimension(rearBuffer2.getWidth(), rearBuffer2.getHeight()));
 //			this.setSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			spBack.setMaximumSize(new Dimension(b1Rear.getWidth(), b2Rear.getHeight() < 600 ? b2Rear.getHeight() : 600));
-			spBack.setSize(new Dimension(b1Rear.getWidth(), b2Rear.getHeight() < 600 ? b2Rear.getHeight() : 600));
-			pnBack.setSize(new Dimension(b2Rear.getWidth(), b2Rear.getHeight()));
-			if (JCardMapperPanel.this.getWidth() > b1Rear.getWidth())
-				JCardMapperPanel.this.setSize(new Dimension(b1Rear.getWidth(), JCardMapperPanel.this.getHeight()));
-			if (JCardMapperPanel.this.getHeight() > b1Rear.getHeight())
-				JCardMapperPanel.this.setSize(new Dimension(JCardMapperPanel.this.getWidth(), b1Rear.getHeight()));
+			spBack.setMaximumSize(new Dimension(rearBuffer1.getWidth(), rearBuffer2.getHeight() < 600 ? rearBuffer2.getHeight() : 600));
+			spBack.setSize(new Dimension(rearBuffer1.getWidth(), rearBuffer2.getHeight() < 600 ? rearBuffer2.getHeight() : 600));
+			pnRear.setSize(new Dimension(rearBuffer2.getWidth(), rearBuffer2.getHeight()));
+			if (JFieldMappingPanel.this.getWidth() > rearBuffer1.getWidth())
+				JFieldMappingPanel.this.setSize(new Dimension(rearBuffer1.getWidth(), JFieldMappingPanel.this.getHeight()));
+			if (JFieldMappingPanel.this.getHeight() > rearBuffer1.getHeight())
+				JFieldMappingPanel.this.setSize(new Dimension(JFieldMappingPanel.this.getWidth(), rearBuffer1.getHeight()));
 		}
 		
 		revalidate();
 	}
 
 	private void repaintImage(CardSide side) {
+		if (previewMode)
+			return;
 		boolean front = side == CardSide.FRONT;
-		Point m = front ? pnFront.getMousePosition() : pnBack.getMousePosition();
-		Graphics g = front ? this.b2Front.createGraphics() : this.b2Rear.createGraphics();
-		g.drawImage(front ? this.b1Front : this.b1Rear, 0, 0, null);
+		Point m = front ? pnFront.getMousePosition() : pnRear.getMousePosition();
+		Graphics g = front ? this.frontBuffer2.createGraphics() : this.rearBuffer2.createGraphics();
+		g.drawImage(front ? this.frontBuffer1 : this.rearBuffer1, 0, 0, null);
 		if (m != null) {
 			g.setColor(rectColor);
-			g.drawLine(0, m.y, front ? pnFront.getWidth() : pnBack.getWidth(), m.y);
-			g.drawLine(m.x, 0, m.x, front ? pnFront.getHeight() : pnBack.getHeight());
+			g.drawLine(0, m.y, front ? pnFront.getWidth() : pnRear.getWidth(), m.y);
+			g.drawLine(m.x, 0, m.x, front ? pnFront.getHeight() : pnRear.getHeight());
 			g.dispose();
 			if (editor.isEditMode()) {
 				int width = editor.getWidth();
@@ -668,11 +693,11 @@ public class JCardMapperPanel extends JPanel {
 			// System.out.println("Edit mode: " + this.editor.isEditMode());
 			// System.out.println("X|Y: " + m.x + "|" + m.y);
 		}
-		this.editor.drawFields(front ? this.b2Front : this.b2Rear, side, false, true);
+		this.editor.drawFields(front ? this.frontBuffer2 : this.rearBuffer2, side, false, true);
 		if (front)
 			pnFront.repaint();
 		else
-			pnBack.repaint();
+			pnRear.repaint();
 	}
 
 	private void populateFieldTree() {
@@ -725,5 +750,29 @@ public class JCardMapperPanel extends JPanel {
 	
 	public List<Field> getFields() {
 		return fields;
+	}
+
+	private void updatePreviewMode() {
+		if (previewMode) {
+			BufferedImage[] images = CardCreator.createCard(0, null, this.fields);
+			if (images != null) {
+				this.frontPreview = images[0];
+				this.rearPreview = images[1];
+			}
+			else {
+				this.frontPreview = null;
+				this.rearPreview = null;
+				this.previewMode = false;
+				this.chckbxPreview.setSelected(false);
+			}
+			if (this.frontPreview != null) {
+				pnFront.setIcon(new ImageIcon(this.frontPreview));
+				pnRear.setIcon(new ImageIcon(this.rearPreview));
+			}
+		}
+		else {
+			pnFront.setIcon(new ImageIcon(this.frontBuffer2));
+			pnRear.setIcon(new ImageIcon(this.rearBuffer2));
+		}
 	}
 }

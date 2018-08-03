@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
@@ -219,29 +221,31 @@ public class CardCreator {
 	 *             Throws {@link IndexOutOfBoundsException} if the parameter cardNo
 	 *             is smaller than 0 or greater than the number of csv rows.
 	 */
-	public static BufferedImage[] createCard(int cardNo, StatusListener listener) {
-		FieldPackage fPackage = currentProject.getFp();
+	public static BufferedImage[] createCard(int cardNo, StatusListener listener, List<Field> overrides) {
+		if(!currentProject.hasCsvData())
+			return null;
+		Map<String, Field> fields = (overrides != null ? overrides : currentProject.getFp().getFields()).stream().collect(Collectors.toMap(Field::getName, Function.identity()));
 		List<String> mappedFields = currentProject.getMappedFields();
 		String[][] csvData = currentProject.getCsvData();
-		listener.setText("Drawing cards (0/" + csvData.length +")");
+		if(listener != null) listener.setText("Drawing card (0/" + csvData.length +")");
 		String[] csvEntry = csvData[cardNo];
-		BufferedImage front = fPackage.getFrontImageCopy();
-		BufferedImage rear = fPackage.getRearImageCopy();
+		BufferedImage front = currentProject.getFp().getFrontImageCopy();
+		BufferedImage rear = currentProject.getFp().getRearImageCopy();
 		Graphics2D gFront = front.createGraphics();
 		gFront.setColor(Color.BLACK);
 		Graphics2D gRear = rear.createGraphics();
 		gRear.setColor(Color.BLACK);
-		listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
+		if(listener != null) listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
 		for (String fieldName : mappedFields) {
-			Field field = fPackage.getFieldByName(fieldName);
+			Field field = fields.get(fieldName);
 			int columnIndex = currentProject.getCsvColumnIndex(fieldName);
 			if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {
 				try {
-				Font font = ProjectManager.getFont(currentProject, field.getFont());
-				String content = csvEntry[columnIndex];
-				field.drawContent(gFront, gRear, content, font);
+					Font font = ProjectManager.getFont(currentProject, field.getFont());
+					String content = csvEntry[columnIndex];
+					field.drawContent(gFront, gRear, content, font);
 				} catch (Exception e) {
-					listener.setText("Error drawing on field " +field.getName() + ": " +e.getMessage());
+					if(listener != null) listener.setText("Error drawing on field " +field.getName() + ": " +e.getMessage());
 					e.printStackTrace();
 				}
 			}

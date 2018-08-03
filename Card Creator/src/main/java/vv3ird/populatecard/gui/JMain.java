@@ -318,7 +318,7 @@ public class JMain extends JFrame {
 		mntmMapFields.setEnabled(false);
 		mntmMapFields.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JCardMapperPanel cm = new JCardMapperPanel(CardCreator.getCurrentProject());
+				JFieldMappingPanel cm = new JFieldMappingPanel(CardCreator.getCurrentProject());
 				boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map Fields", JOptionPane.OK_CANCEL_OPTION,
 						JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 				if (ok) {
@@ -496,6 +496,15 @@ public class JMain extends JFrame {
 		panel.add(lblFrontSide);
 		frontImage = new BufferedImage(133, 199, BufferedImage.TYPE_INT_ARGB);
 		pnFrontPreview = new JLabel(new ImageIcon(frontImage));
+		pnFrontPreview.setToolTipText("Click to add fields");
+		pnFrontPreview.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(CardCreator.hasCurrentProject()) {
+					openFieldsEditor(true);
+				}
+			}
+		});
 		pnFrontPreview.setBorder(new LineBorder(new Color(0, 0, 0)));
 		pnFrontPreview.setBounds(10, 36, 133, 199);
 		panel.add(pnFrontPreview);
@@ -524,6 +533,15 @@ public class JMain extends JFrame {
 		panel.add(lblBackSide);
 		rearImage = new BufferedImage(133, 199, BufferedImage.TYPE_INT_ARGB);
 		pnRearPreview = new JLabel(new ImageIcon(rearImage));
+		pnRearPreview.setToolTipText("Click to add fields");
+		pnRearPreview.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(CardCreator.hasCurrentProject()) {
+					openFieldsEditor(false);
+				}
+			}
+		});
 		pnRearPreview.setBorder(new LineBorder(new Color(0, 0, 0)));
 		pnRearPreview.setBounds(163, 36, 133, 199);
 		panel.add(pnRearPreview);
@@ -641,6 +659,15 @@ public class JMain extends JFrame {
 
 		alternateRearImage = new BufferedImage(133, 199, BufferedImage.TYPE_INT_ARGB);
 		pnAlternateRearPreview = new JLabel(new ImageIcon(alternateRearImage));
+		pnAlternateRearPreview.setToolTipText("Click to add fields");
+		pnAlternateRearPreview.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(CardCreator.hasCurrentProject()) {
+					openFieldsEditor(false);
+				}
+			}
+		});
 		pnAlternateRearPreview.setBorder(new LineBorder(new Color(0, 0, 0)));
 		pnAlternateRearPreview.setBounds(316, 36, 133, 199);
 		panel.add(pnAlternateRearPreview);
@@ -916,5 +943,17 @@ public class JMain extends JFrame {
 			public void windowActivated(WindowEvent e) {}
 		});
 		dia.setVisible(true);
+	}
+
+	private void openFieldsEditor(boolean frontPanel) {
+		JFieldMappingPanel cm = new JFieldMappingPanel(CardCreator.getCurrentProject(), frontPanel);
+		boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map Fields", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
+		if (ok) {
+			List<Field> fields = cm.getFields();
+			if (fields != null && CardCreator.hasCurrentProject()) {
+				CardCreator.setFields(fields); 
+			}
+		}
 	}
 }

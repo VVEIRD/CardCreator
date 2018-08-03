@@ -361,4 +361,8 @@ public class Project {
 		this.csvRecordSeparator = csvRecordSeparator;
 	}
 
+	public boolean hasCsvData() {
+		return this.csvData != null;
+	}
+
 }
