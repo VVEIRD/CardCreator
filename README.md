@@ -22,7 +22,7 @@ This project is for creating the front and backside image of cards with help of 
    - CSV columns can contain images by including the following:
      - Start tag <img>: and the end tag </img>, e.g. <img>/home/bla/img.png</img>
      - Start tag <imgb> and end tag </imgb> for base64-encoded images, e.g. <imgb>BASE64_ENCODED_IMG</imgb>
-   - Text can now be __bold__ and _italic_ aswell as **_bold and itallic_**. Use the Tags <b></b> for bold and <i></i> for italic
+   - Text can now be __bold__ and _italic_ aswell as **_bold and itallic_**. Use the Tags &lt;b&gt;&lt;/b&gt; for bold and &lt;i>&lt;/i&gt; for italic
    - CSV columns can contain linebreaks that are splitting paragraphs by using '-n-', e.g. This is the first paragraph.-n-This is the second paragraph.
 6. Map fields to csv columns
 7. Create the cards
