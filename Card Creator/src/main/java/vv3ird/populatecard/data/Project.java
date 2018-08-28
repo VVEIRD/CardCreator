@@ -176,6 +176,16 @@ public class Project {
 	 * Record separator for the csv file
 	 */
 	private String csvRecordSeparator = "\n";
+	
+	/**
+	 * Determines the amount of threads used for processing 
+	 */
+	private ParallelProcessing processingMode = ParallelProcessing.CPU_MINUS_ONE;
+	
+	/**
+	 * Custom processing thread value
+	 */
+	private int customParallelProcessingThreads = 1;
 		
 	
 	/**
@@ -364,5 +374,27 @@ public class Project {
 	public boolean hasCsvData() {
 		return this.csvData != null;
 	}
+	
+	
+	public int getCustomParallelProcessingThreads() {
+		return customParallelProcessingThreads;
+	}
+	
+	public void setCustomParallelProcessingThreads(int customParallelProcessingThreads) {
+		this.customParallelProcessingThreads = customParallelProcessingThreads;
+	}
+	
+	public ParallelProcessing getProcessingMode() {
+		if(processingMode == null)
+			processingMode = ParallelProcessing.CPU_MINUS_ONE;
+		return processingMode;
+	}
+	
+	public void setProcessingMode(ParallelProcessing processingMode) {
+		this.processingMode = processingMode;
+	}
 
+	public int getParallelProcessingThreads() {
+		return this.processingMode == ParallelProcessing.CPU_MINUS_ONE ? Runtime.getRuntime().availableProcessors()-1 : this.processingMode == ParallelProcessing.SINGLE_THREAD ? 1 : this.customParallelProcessingThreads;
+	}
 }

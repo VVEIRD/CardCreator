@@ -1,5 +1,8 @@
 package vv3ird.populatecard.control;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -10,12 +13,17 @@ import java.util.concurrent.Future;
 import vv3ird.populatecard.gui.StatusListener;
 
 public class TaskScheduler {
+	
+	private static int threadCount = 1;
 
 	private static ExecutorService threads = Executors.newFixedThreadPool(1);
 
 	private static Task activeTask = null;
 	
-	private static Future<?> activeFuture = null;
+	private static List<Future<?>> activeFutures = new ArrayList<>(1);
+	
+	private static boolean changeThreadCount = false;
+	
 
 	private static Queue<Task> queue = new ConcurrentLinkedQueue<>();
 
@@ -27,12 +35,31 @@ public class TaskScheduler {
 			public void run() {
 				try {
 					while (true) {
-						if (activeFuture == null || activeFuture.isDone()) {
+						// Remove finished tasks
+						List<Future<?>> oldFutures = new LinkedList<>();
+						for (int i=0; i<activeFutures.size();i++) {
+							Future<?> future = activeFutures.get(i); 
+							if (future.isDone() || future.isCancelled()) {
+								oldFutures.add(future);
+							}
+						}
+						activeFutures.removeAll(oldFutures);
+						// Add new tasks
+						while(!changeThreadCount && activeFutures.size() < threadCount) {
 							Task t = queue.poll();
 							if (t != null) {
-								activeFuture = threads.submit(t.getPayload());
+								Future<?> future = threads.submit(t.getPayload());
+								activeTask = t;
+								activeFutures.add(future);
 							}
-							activeTask = t;
+						}
+						// Change thread count
+						if (changeThreadCount && activeFutures.isEmpty()) {
+							System.out.println("Changing thread count (" + threadCount + ")");
+							threads = Executors.newFixedThreadPool(threadCount);
+							activeFutures = new ArrayList<>(threadCount);
+							System.out.println(activeFutures.size());
+							changeThreadCount = false;
 						}
 						Thread.sleep(200);
 					}
@@ -69,6 +96,12 @@ public class TaskScheduler {
 
 	public static boolean hasActiveTask() {
 		return getActiveTask() != null;
+	}
+	
+	public static void changeThreadCount(int threadCount) {
+		System.out.println("Setting thread count (" + threadCount + ")");
+		TaskScheduler.threadCount = threadCount > 0 ? threadCount : 1;
+		TaskScheduler.changeThreadCount = true;
 	}
 
 }

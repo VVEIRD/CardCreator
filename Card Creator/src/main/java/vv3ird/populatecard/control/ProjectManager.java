@@ -129,6 +129,7 @@ public class ProjectManager {
 		}
 		addRecentProject(projectFile.toString());
 		saveRecent();
+		TaskScheduler.changeThreadCount(p.getParallelProcessingThreads());
 		return p;
 	}
 	

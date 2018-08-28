@@ -1,6 +1,7 @@
 package vv3ird.populatecard;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -23,8 +24,11 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import vv3ird.populatecard.control.ProjectManager;
+import vv3ird.populatecard.control.TaskScheduler;
+import vv3ird.populatecard.control.postprocessing.ReplaceImage;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.FieldPackage;
+import vv3ird.populatecard.data.ParallelProcessing;
 import vv3ird.populatecard.data.Project;
 import vv3ird.populatecard.gui.JMain;
 import vv3ird.populatecard.gui.StatusListener;
@@ -160,53 +164,82 @@ public class CardCreator {
 		List<String> mappedFields = currentProject.getMappedFields();
 		String[][] csvData = currentProject.getCsvData();
 		String zeroes = "%0" + String.valueOf(csvData.length).length() + "d";
-		int cardNo = 1;
-		listener.setText("Drawing cards (0/" + csvData.length +")");
+		int card = 1;
 		for (String[] csvEntry : csvData) {
-			String filenameFront = new String(currentProject.getFileNameTemplate());
-			String filenameRear = new String(currentProject.getFileNameTemplate());
-			BufferedImage front = fPackage.getFrontImageCopy();
-			BufferedImage rear = fPackage.getRearImageCopy();
-			Graphics2D gFront = front.createGraphics();
-			gFront.setColor(Color.BLACK);
-			Graphics2D gRear = rear.createGraphics();
-			gRear.setColor(Color.BLACK);
-			listener.setText("Drawing cards (" + cardNo + "/" + csvData.length +")");
-			for (String fieldName : mappedFields) {
-				Field field = fPackage.getFieldByName(fieldName);
-				int columnIndex = currentProject.getCsvColumnIndex(fieldName);
-				if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {
-					try {
-					Font font = ProjectManager.getFont(currentProject, field.getFont());
-					String content = csvEntry[columnIndex];
-					filenameFront = filenameFront.replace("{" + currentProject.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
-					filenameRear = filenameRear.replace("{" + currentProject.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
-					field.drawContent(gFront, gRear, content, font);
-					} catch (Exception e) {
-						listener.setText("Error drawing on field " +field.getName() + ": " +e.getMessage());
-						e.printStackTrace();
+			final int cardNo = card++;
+			TaskScheduler		.addTask("Drawing card (" + cardNo + "/" + csvData.length +")", 
+				new Runnable() {
+					@Override
+					public void run() {
+						String filenameFront = new String(currentProject.getFileNameTemplate());
+						String filenameRear = new String(currentProject.getFileNameTemplate());
+						BufferedImage front = fPackage.getFrontImageCopy();
+						BufferedImage rear = fPackage.getRearImageCopy();
+						Graphics2D gFront = front.createGraphics();
+						gFront.setColor(Color.BLACK);
+						Graphics2D gRear = rear.createGraphics();
+						gRear.setColor(Color.BLACK);
+						listener.setText("Drawing card (" + cardNo + "/" + csvData.length +")");
+						for (String fieldName : mappedFields) {
+							Field field = fPackage.getFieldByName(fieldName);
+							int columnIndex = currentProject.getCsvColumnIndex(fieldName);
+							if(field != null && columnIndex >= 0 && columnIndex < csvEntry.length) {
+								try {
+								Font font = ProjectManager.getFont(currentProject, field.getFont());
+								String content = csvEntry[columnIndex];
+								filenameFront = filenameFront.replace("{" + currentProject.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
+								filenameRear = filenameRear.replace("{" + currentProject.getCsvColumn(fieldName) + "}", content.replace("/", "_").replace("*", "_"));
+								field.drawContent(gFront, gRear, content, font);
+								} catch (Exception e) {
+									listener.setText("Error drawing on field " +field.getName() + ": " +e.getMessage());
+									e.printStackTrace();
+								}
+							}
+						}
+						gFront.dispose();
+						gRear.dispose();
+						filenameFront = filenameFront.replace("{no}", String.format(zeroes, cardNo));
+						if (filenameFront.contains("{side}")) {
+							filenameFront = filenameFront.replace("{side}", "front");
+							filenameRear = filenameRear.replace("{no}", String.format(zeroes, cardNo));
+							filenameRear = filenameRear.replace("{side}", "rear");
+						}
+						else {
+							filenameRear = filenameRear.replace("{no}", String.valueOf(cardNo));
+						}
+						if (!filenameRear.toLowerCase().endsWith(".png"))
+							filenameRear = filenameRear + ".png";
+						if (!filenameFront.toLowerCase().endsWith(".png"))
+							filenameFront = filenameFront + ".png";
+						try {
+							ImageIO.write(front, "PNG", output.resolve(filenameFront).toFile());
+							ImageIO.write(rear, "PNG", output.resolve(filenameRear).toFile());
+						} catch (IOException e) {
+							listener.setText("Error drawing card (" + cardNo + "/" + csvData.length + ")");
+							e.printStackTrace();
+						}
+						
 					}
+				}, 
+				listener
+			);
+		}
+		if (CardCreator.getAlternateRearImage() != null)
+			TaskScheduler.addTask("Swap empty rear image with alternate", new ReplaceImage(CardCreator.getOutputFolder(),
+							CardCreator.getRearImage(), CardCreator.getAlternateRearImage(), listener),
+							listener);
+		TaskScheduler.addTask("Open output folder", new Runnable() {
+			public void run() {
+				try {
+					listener.setText("Open output folder " + CardCreator.getOutputFolder().toAbsolutePath().toString());
+					Desktop.getDesktop().open(CardCreator.getOutputFolder().toFile());
+				} catch (IOException e) {
+					listener.setText("Error opening output folder: " + e.getMessage());
+					e.printStackTrace();
 				}
 			}
-			gFront.dispose();
-			gRear.dispose();
-			filenameFront = filenameFront.replace("{no}", String.format(zeroes, cardNo));
-			if (filenameFront.contains("{side}")) {
-				filenameFront = filenameFront.replace("{side}", "front");
-				filenameRear = filenameRear.replace("{no}", String.format(zeroes, cardNo));
-				filenameRear = filenameRear.replace("{side}", "rear");
-			}
-			else {
-				filenameRear = filenameRear.replace("{no}", String.valueOf(++cardNo));
-			}
-			cardNo++;
-			if (!filenameRear.toLowerCase().endsWith(".png"))
-				filenameRear = filenameRear + ".png";
-			if (!filenameFront.toLowerCase().endsWith(".png"))
-				filenameFront = filenameFront + ".png";
-			ImageIO.write(front, "PNG", output.resolve(filenameFront).toFile());
-			ImageIO.write(rear, "PNG", output.resolve(filenameRear).toFile());
-		}
+		}, listener);
+		
 	}
 	
 	/**
@@ -357,5 +390,16 @@ public class CardCreator {
 
 	public static Path getBaseFolder() {
 		return Paths.get(System.getProperty("user.dir"));
+	}
+	
+	public static void setParallelProcessing(ParallelProcessing pp, int value) {
+		System.out.println("PP:  " + pp);
+		System.out.println("Val: " + value);
+		value = value > 0 ? value : 1;
+		if (hasCurrentProject()) {
+			currentProject.setCustomParallelProcessingThreads(value);
+			currentProject.setProcessingMode(pp);
+		}
+		TaskScheduler.changeThreadCount(pp == ParallelProcessing.CPU_MINUS_ONE ? Runtime.getRuntime().availableProcessors()-1 : pp == ParallelProcessing.SINGLE_THREAD ? 1 : value);
 	}
 }

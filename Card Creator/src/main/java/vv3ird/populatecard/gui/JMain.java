@@ -98,6 +98,7 @@ public class JMain extends JFrame {
 	private JMenuItem mntmImportCsv;
 	private JMenuItem mntmSaveProject;
 	private JMenuItem mntmMapCsv;
+	private JMenuItem mntmConfiguration;
 
 	/**
 	 * Create the frame.
@@ -365,6 +366,17 @@ public class JMain extends JFrame {
 			}
 		});
 		mnEdit.add(mntmImportCmFile);
+		mnEdit.addSeparator();
+		
+		mntmConfiguration = new JMenuItem("Configuration");
+		mntmConfiguration.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				JConfigFrame config = new JConfigFrame(JMain.this);
+				config.setVisible(true);
+			}
+		});
+		mntmConfiguration.setEnabled(false);
+		mnEdit.add(mntmConfiguration);
 
 		mnFonts = new JMenu("Fonts");
 		menuBar.add(mnFonts);
@@ -574,7 +586,6 @@ public class JMain extends JFrame {
 						public void run() {
 							try {
 								CardCreator.drawCards(lblStatus);
-								Desktop.getDesktop().open(CardCreator.getOutputFolder().toFile());
 								lblStatus.setText("Drawing cards finished");
 							} catch (IOException e1) {
 								lblStatus.setText("Error drawing cards: " + e1.getMessage());
@@ -582,11 +593,6 @@ public class JMain extends JFrame {
 							}
 						}
 					}, lblStatus);
-					if(CardCreator.getAlternateRearImage() != null)
-						TaskScheduler.addTask("Swap empty rear image with alternate",
-								new ReplaceImage(CardCreator.getOutputFolder(), CardCreator.getRearImage(),
-										CardCreator.getAlternateRearImage(), lblStatus),
-								lblStatus);
 				}
 			}
 		});
@@ -844,6 +850,7 @@ public class JMain extends JFrame {
 		JMain.this.mntmMapFields.setEnabled(true);
 		JMain.this.mntmImportFont.setEnabled(true);
 		JMain.this.mntmExportProject.setEnabled(true);
+		JMain.this.mntmConfiguration.setEnabled(true);
 		JMain.this.tfFileNameTemplate.setEnabled(true);
 		JMain.this.btnI.setEnabled(true);
 		if (CardCreator.getCsvHeader() != null) {
