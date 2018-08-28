@@ -227,7 +227,7 @@ public class CardCreator {
 		if (CardCreator.getAlternateRearImage() != null)
 			TaskScheduler.addTask("Swap empty rear image with alternate", new ReplaceImage(CardCreator.getOutputFolder(),
 							CardCreator.getRearImage(), CardCreator.getAlternateRearImage(), listener),
-							listener);
+							listener, true);
 		TaskScheduler.addTask("Open output folder", new Runnable() {
 			public void run() {
 				try {

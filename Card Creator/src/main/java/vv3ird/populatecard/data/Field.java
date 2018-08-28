@@ -526,7 +526,7 @@ public class Field {
 				else {
 					// Draw word for word with the correct spacing
 					int caret = 0;
-					System.out.println("Line: \"" + l + "\"");
+					//System.out.println("Line: \"" + l + "\"");
 					char[] lineArray = l.toCharArray();
 					for (int i = 0; i < lineArray.length; i++) {
 						// check for bold

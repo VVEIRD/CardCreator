@@ -193,7 +193,8 @@ public class JMain extends JFrame {
 							}
 						}
 					}, 
-					lblStatus
+					lblStatus,
+					true
 				);
 			}
 			

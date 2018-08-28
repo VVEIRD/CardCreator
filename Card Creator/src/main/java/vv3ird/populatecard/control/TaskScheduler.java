@@ -20,6 +20,8 @@ public class TaskScheduler {
 
 	private static Task activeTask = null;
 	
+	private static Task nextTask = null;
+	
 	private static List<Future<?>> activeFutures = new ArrayList<>(1);
 	
 	private static boolean changeThreadCount = false;
@@ -45,13 +47,24 @@ public class TaskScheduler {
 						}
 						activeFutures.removeAll(oldFutures);
 						// Add new tasks
-						while(!changeThreadCount && activeFutures.size() < threadCount) {
-							Task t = queue.poll();
-							if (t != null) {
-								Future<?> future = threads.submit(t.getPayload());
-								activeTask = t;
+						while(!changeThreadCount && activeFutures.size() < threadCount && nextTask == null && ((activeTask != null && !activeTask.noParallel()) || activeTask == null)) {
+							nextTask = queue.poll();
+							if (nextTask != null && !nextTask.noParallel()) {
+								activeTask = nextTask;
+								nextTask = null;
+								Future<?> future = threads.submit(activeTask.getPayload());
 								activeFutures.add(future);
 							}
+						}
+						// Clear active tasks
+						if (activeTask != null && activeFutures.isEmpty())
+							activeTask = null;
+						// Add no parallel task
+						if (nextTask != null && nextTask.noParallel() && activeFutures.isEmpty()) {
+							activeTask = nextTask;
+							nextTask = null;
+							Future<?> future = threads.submit(activeTask.getPayload());
+							activeFutures.add(future);
 						}
 						// Change thread count
 						if (changeThreadCount && activeFutures.isEmpty()) {
@@ -79,11 +92,19 @@ public class TaskScheduler {
 	}
 	
 	public static void addTask(String description, Runnable payload, StatusListener listener) {
-		queue.add(new Task(description, payload, listener));
+		addTask(description, payload, listener, false);
+	}
+	
+	public static void addTask(String description, Runnable payload, StatusListener listener, boolean noParallel) {
+		queue.add(new Task(description, payload, listener, noParallel));
 	}
 	
 	public static Task getActiveTask() {
 		return activeTask;
+	}
+	
+	public static Task getNextTask() {
+		return nextTask;
 	}
 	
 	public static Task[] getQueue() {
@@ -96,6 +117,10 @@ public class TaskScheduler {
 
 	public static boolean hasActiveTask() {
 		return getActiveTask() != null;
+	}
+
+	public static boolean hasNextTask() {
+		return getNextTask() != null;
 	}
 	
 	public static void changeThreadCount(int threadCount) {

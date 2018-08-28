@@ -11,12 +11,18 @@ public class Task implements StatusListener {
 	private StatusListener listener = null;
 	
 	private String status = null;
-
+	
+	private boolean noParallel = false;
 	public Task(String description, Runnable payload, StatusListener listener) {
+		this(description, payload, listener, false);
+	}
+
+	public Task(String description, Runnable payload, StatusListener listener, boolean noParallel) {
 		super();
 		this.description = description;
 		this.payload = payload;
 		this.listener = listener;
+		this.noParallel = noParallel;
 	}
 
 	@Override
@@ -58,8 +64,13 @@ public class Task implements StatusListener {
 
 	@Override
 	public void clearLog() {
-		// TODO Auto-generated method stub
-		
 	}
-
+	
+	public boolean noParallel() {
+		return noParallel;
+	}
+	
+	public void setNoParallel(boolean noParallel) {
+		this.noParallel = noParallel;
+	}
 }
