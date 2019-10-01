@@ -47,7 +47,7 @@ public class TaskScheduler {
 						}
 						activeFutures.removeAll(oldFutures);
 						// Add new tasks
-						while(!changeThreadCount && activeFutures.size() < threadCount && nextTask == null && ((activeTask != null && !activeTask.noParallel()) || activeTask == null)) {
+						while(queue.size() > 0 && !changeThreadCount && activeFutures.size() < threadCount && nextTask == null && ((activeTask != null && !activeTask.noParallel()) || activeTask == null)) {
 							nextTask = queue.poll();
 							if (nextTask != null && !nextTask.noParallel()) {
 								activeTask = nextTask;

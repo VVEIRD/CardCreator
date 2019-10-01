@@ -13,6 +13,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -87,25 +89,29 @@ public class Project {
 	 * @param path		Project file
 	 * @throws IOException	Whenever an IO Error occurs while writing data to disk.
 	 */
-	public static void save(Project project, Path path) throws IOException {
+	public static void save(Project project, Path path, boolean keepBackup) throws IOException {
 		if (project.fp != null)
 			project.fp.encodeImages();
 		String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(project);
 		if(path.toString().endsWith(".cmpz"))
-			saveCompressed(jsonString, path);
+			saveCompressed(jsonString, path, keepBackup);
 		else
-			saveUncompressed(jsonString, path);
+			saveUncompressed(jsonString, path, keepBackup);
 	}
 	
-	private static void saveUncompressed(String jsonString, Path path) throws IOException {
+	private static void saveUncompressed(String jsonString, Path path, boolean keepBackup) throws IOException {
 		try {
 			byte[] utf8JsonString = jsonString.getBytes("UTF-8");
+			if (Files.exists(path))
+				Files.copy(path, path.getParent().resolve("." + path.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
 			Files.write(path, utf8JsonString, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 		} catch (UnsupportedEncodingException e) {
 		}
 	}
 
-	private static void saveCompressed(String jsonString, Path path) throws IOException {
+	private static void saveCompressed(String jsonString, Path path, boolean keepBackup) throws IOException {
+		if (Files.exists(path))
+			Files.copy(path, path.getParent().resolve("." + path.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
 		FileOutputStream output = new FileOutputStream(path.toFile());
 		try {
 			Writer writer = new OutputStreamWriter(new GZIPOutputStream(output), StandardCharsets.UTF_8);
@@ -226,8 +232,12 @@ public class Project {
 		return this.csvFieldMapping.get(field);
 	}
 	
-	public int getCsvColumnIndex(String field) {
+	public int getMappedCsvColumnIndex(String field) {
 		return this.csvHeader.get(this.csvFieldMapping.get(field));
+	}
+	
+	public int getCsvColumnIndex(String csvHeader) {
+		return this.csvHeader.get(csvHeader);
 	}
 	
 	public String[][] getCsvData() {
@@ -396,5 +406,13 @@ public class Project {
 
 	public int getParallelProcessingThreads() {
 		return this.processingMode == ParallelProcessing.CPU_MINUS_ONE ? Runtime.getRuntime().availableProcessors()-1 : this.processingMode == ParallelProcessing.SINGLE_THREAD ? 1 : this.customParallelProcessingThreads;
+	}
+
+	public Field getFieldByName(String fieldName) {
+		return fp.getFieldByName(fieldName);
+	}
+
+	public List<Field> getCalculatedFields() {
+		return fp.getCalculatedFields();
 	}
 }

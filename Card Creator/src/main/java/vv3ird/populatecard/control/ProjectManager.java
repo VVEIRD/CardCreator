@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
@@ -191,7 +192,7 @@ public class ProjectManager {
 		Files.createDirectories(projectCsv);
 		Files.createDirectories(projectOutput);
 		Project pNew = new Project(projectName);
-		Project.save(pNew, projectFilePath);
+		Project.save(pNew, projectFilePath, false);
 		addRecentProject(projectFilePath.toString());
 		saveRecent();
 		return pNew;
@@ -214,18 +215,20 @@ public class ProjectManager {
 		Files.createDirectories(projectFonts);
 		Files.createDirectories(projectCsv);
 		Files.createDirectories(projectOutput);
-		Project.save(project, projectFilePath);
+		Project.save(project, projectFilePath, true);
 	}
 	
 	/**
 	 * Imports a font into the project. Only true type fonts supported
-	 * @param project
-	 * @param fontPath
-	 * @return
-	 * @throws IOException
-	 * @throws FontFormatException
+	 * @param project	Project the font should be added to
+	 * @param fontPath	Path to the new font file, it will be copied into the project
+	 * @return	Name of the font
+	 * @throws IOException			IO Error opening the font
+	 * @throws FontFormatException	If the given file is not a valid or readable font format
 	 */
 	public static String importFont(Project project, Path fontPath) throws IOException, FontFormatException {
+		project = Objects.requireNonNull(project);
+		fontPath = Objects.requireNonNull(fontPath);
 		Font font = null;
 		String name = fontPath.getFileName().toString();
 		name = name.substring(0, name.lastIndexOf("."));
@@ -240,10 +243,16 @@ public class ProjectManager {
 		return name;
 	}
 
+	/**
+	 * Deletes a font from the project
+	 * @param project	Given project where the font should be deleted from
+	 * @param fontName	Name of the font that should be deleted
+	 * @throws IOException	IO Error when deleting the font file
+	 */
 	public static void deleteFont(Project project, String fontName) throws IOException {
 		Path projectFont = Paths.get(project.getProjectRoot().toString(), "fonts", fontName + ".ttf");
-		Files.delete(projectFont);
 		project.removeFont(fontName);
+		Files.delete(projectFont);
 	}
 	
 	public static CSVParser openCsv(Path csvPath, CSVFormat format) throws IOException {
@@ -259,6 +268,7 @@ public class ProjectManager {
 	
 	public static void importCsv(Project project, Path csvPath, boolean processMediaEntries) throws IOException {
 		boolean csvValid=false;
+		Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", "data.csv");
 		if(Files.exists(csvPath)) {
 			CSVFormat format = project.getCSVFormat();
 			try (InputStream is = Files.newInputStream(csvPath);
@@ -292,7 +302,7 @@ public class ProjectManager {
 				try (InputStream is = Files.newInputStream(csvPath);
 						Reader in = new InputStreamReader(is, StandardCharsets.UTF_8);
 						CSVParser parser = new CSVParser(in, format);) {
-					Path projectCsv = Paths.get(project.getProjectRoot().toString(), "csv", "data.csv");
+					
 					BufferedWriter br = Files.newBufferedWriter(projectCsv, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 					String[] header = new String[parser.getHeaderMap().size()];
 					Map<String, Integer> headerMap = parser.getHeaderMap();
@@ -319,6 +329,8 @@ public class ProjectManager {
 					if(csvPrinter != null)
 						csvPrinter.close();
 				}
+				if(csvValid) 
+					ProjectManager.openCsv(projectCsv, project.getCSVFormat());
 			}
 		}
 	}
@@ -464,7 +476,7 @@ public class ProjectManager {
 	}
 
 	public static Path exportProject(Project p, Path exportFile) {
-		Path sourceRoot = Paths.get("projects", p.getName());
+		Path sourceRoot = p.getProjectRoot();
 		Map<String, String> env = new HashMap<>(); 
         env.put("create", "true");
         try {

@@ -2,8 +2,6 @@ package vv3ird.populatecard.gui;
 
 import java.awt.Component;
 import java.awt.Dimension;
-import java.util.LinkedList;
-import java.util.List;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -15,22 +13,25 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import vv3ird.populatecard.CardCreator;
-import vv3ird.populatecard.control.ProjectManager;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.Field.FieldType;
-import vv3ird.populatecard.data.Project;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 public class JFieldEditorPanel extends JPanel {
+	
 	private static final long serialVersionUID = 2838584356620026755L;
+	
 	private JSpinner spinnerPointX;
 	private JSpinner spinnerPointY;
 	private JSpinner spinnerWidth;
 	private JSpinner spinnerHeight;
 	private Field field;
-//	private Project p;
 	private JSpinner spinnerFontSize;
 	private JComboBox<String> cbFont;
 	private JComboBox<Field.FieldType> cbFieldType;
@@ -38,16 +39,17 @@ public class JFieldEditorPanel extends JPanel {
 	private JTextField tfName;
 	private JCheckBox chbxIndented;
 	private JCheckBox chbxResize;
+	private JCheckBox chbxJS;
+	private JTextArea txtJavaScript;
 
 	/**
-	 * Create the panel.
+	 * Panel to edit the attributes of an Field.
 	 */
 	public JFieldEditorPanel(Field field) {
 		this.field = field;
-//		this.p = p;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-		setPreferredSize(new Dimension(360, 240));
-		setMaximumSize(new Dimension(360, 240));
+		setPreferredSize(new Dimension(360, 400));
+		setMaximumSize(new Dimension(360, 400));
 		
 		Box horizontalBox_6 = Box.createHorizontalBox();
 		add(horizontalBox_6);
@@ -161,7 +163,7 @@ public class JFieldEditorPanel extends JPanel {
 		
 		Component rigidArea_8 = Box.createRigidArea(new Dimension(5, 20));
 		horizontalBox_2.add(rigidArea_8);
-		cbCardSide = new JComboBox<>(sides);
+		cbCardSide = new JComboBox(sides);
 		cbCardSide.setSelectedItem(field.getSide());
 		horizontalBox_2.add(cbCardSide);
 		cbCardSide.setPreferredSize(new Dimension(120, 20));
@@ -185,7 +187,7 @@ public class JFieldEditorPanel extends JPanel {
 		Component rigidArea_9 = Box.createRigidArea(new Dimension(12, 20));
 		horizontalBox_3.add(rigidArea_9);
 		Field.FieldType[] types = Field.FieldType.values();
-		cbFieldType = new JComboBox<>(types);
+		cbFieldType = new JComboBox(types);
 		cbFieldType.setSelectedItem(field.getType());
 		cbFieldType.setAlignmentX(Component.LEFT_ALIGNMENT);
 		cbFieldType.setPreferredSize(new Dimension(120, 20));
@@ -210,7 +212,7 @@ public class JFieldEditorPanel extends JPanel {
 		Component rigidArea_10 = Box.createRigidArea(new Dimension(29, 20));
 		horizontalBox_4.add(rigidArea_10);
 		String[] fonts = CardCreator.getFontNames();//getFonts();
-		cbFont = new JComboBox<>(fonts);
+		cbFont = new JComboBox(fonts);
 		cbFont.setPreferredSize(new Dimension(120, 20));
 		cbFont.setMaximumSize(new Dimension(120, 20));
 		cbFont.setAlignmentX(0.0f);
@@ -287,26 +289,74 @@ public class JFieldEditorPanel extends JPanel {
 		Component rigidArea_21 = Box.createRigidArea(new Dimension(45, 20));
 		horizontalBox_8.add(rigidArea_21);
 		
-		Component verticalGlue = Box.createVerticalGlue();
-		add(verticalGlue);
+		Box horizontalBox_9 = Box.createHorizontalBox();
+		add(horizontalBox_9);
+		
+		Component horizontalGlue_9 = Box.createHorizontalGlue();
+		horizontalBox_9.add(horizontalGlue_9);
+		
+		Component rigidArea_22 = Box.createRigidArea(new Dimension(70, 20));
+		horizontalBox_9.add(rigidArea_22);
 
+		chbxJS = new JCheckBox("Calculate Value via JS");
+		chbxJS.setSelected(field.isIndented());
+		chbxJS.setPreferredSize(new Dimension(130, 20));
+		chbxJS.setMaximumSize(new Dimension(130, 20));
+		chbxJS.setSelected(field.resizeText());
+		
+		chbxJS.addChangeListener(new ChangeListener() {
+			
+			@Override
+			public void stateChanged(ChangeEvent arg0) {
+				txtJavaScript.setEnabled(chbxJS.isSelected());
+			}
+		});
+		chbxJS.setSelected(this.field.isCalculated());
+		horizontalBox_9.add(chbxJS);
+		
+		Component rigidArea_23 = Box.createRigidArea(new Dimension(45, 20));
+		horizontalBox_9.add(rigidArea_23);
+		
+		txtJavaScript = new JTextArea();
+		
+		JScrollPane scrollPane = new JScrollPane(txtJavaScript);
+		add(scrollPane);
+		
+		txtJavaScript.setRows(4);
+		if (this.field != null && this.field.isCalculated())
+			txtJavaScript.setText(this.field.getJavaScript());
+		else
+			txtJavaScript.setText( "// Variables are taken from the csv file\n"
+									+ "// calculate() will be called to retrive\n// the calculated value\n"
+									+ "// Use parseInt() to convert variables to integers etc"
+									+ "\n"
+									+ "function calculate(value) {\n"
+									+ "    // add your calculation here\n"
+									+ "    return 0; // return your calculated value\n"
+									+ "}");
+		txtJavaScript.setEnabled(chbxJS.isSelected());
 	}
 	
 	private void setFont(String font) {
 		DefaultComboBoxModel<String> model = ((DefaultComboBoxModel<String>)cbFont.getModel());
 		int s = model.getSize();
-		int selectedIdx = 0;
+		int selectedIdx = -1;
 		if (font != null)
 			for(int i=0;i<s&&selectedIdx<0;i++) {
 				if (font.equals(model.getElementAt(i))) {
 					selectedIdx = i;
 				}
 			}
-		
 		cbFont.setSelectedIndex(selectedIdx);
 	}
 
+	/**
+	 * Copies the values from the UI to the field and returns it
+	 * @return Field edited by this panel or null, if no Field was given to the editor
+	 */
 	public Field getField() {
+		if (this.field == null)
+			return null;
 		// Retrieve values
 		int x = (Integer) spinnerPointX.getValue();
 		int y = (Integer) spinnerPointY.getValue();
@@ -332,22 +382,36 @@ public class JFieldEditorPanel extends JPanel {
 		field.setHeight(height);
 		field.setIndented(indeted);
 		field.setResizeText(resize);
+		field.setJavaScript(chbxJS.isSelected() ? txtJavaScript.getText() : null);
 		return field;
 	}
 	
 	public void setField(Field field) {
 		this.field = field;
-		tfName.setText(field.getName());
-		spinnerPointX.setValue(field.getRect().x);
-		spinnerPointY.setValue(field.getRect().y);
-		spinnerWidth.setValue(field.getRect().width);
-		spinnerHeight.setValue(field.getRect().height);
-		setFont(field.getFont());
-		spinnerFontSize.setValue(field.getFontSize());
-		cbCardSide.setSelectedItem(field.getSide());
-		cbFieldType.setSelectedItem(field.getType());
-		chbxIndented.setSelected(field.isIndented());
-		chbxResize.setSelected(field.resizeText());
+		tfName.setText(this.field != null ? field.getName() : "");
+		spinnerPointX.setValue(this.field != null ? field.getRect().x : 0);
+		spinnerPointY.setValue(this.field != null ? field.getRect().y : 0);
+		spinnerWidth.setValue(this.field != null ? field.getRect().width : 0);
+		spinnerHeight.setValue(this.field != null ? field.getRect().height : 0);
+		spinnerFontSize.setValue(this.field != null ? field.getFontSize() : 18);
+		cbCardSide.setSelectedItem(this.field != null ? field.getSide() : CardSide.FRONT);
+		cbFieldType.setSelectedItem(this.field != null ? field.getType() : FieldType.TEXT_LEFT);
+		chbxIndented.setSelected(this.field != null ? field.isIndented() : true);
+		chbxResize.setSelected(this.field != null ? field.resizeText() : false);
+		chbxJS.setSelected(this.field != null && this.field.isCalculated());
+		if (this.field != null && this.field.isCalculated())
+			txtJavaScript.setText(this.field.getJavaScript());
+		else
+			txtJavaScript.setText( "// asdfVariables are taken from the csv file\n"
+									+ "// calculate() will be called to retrive\n// the calculated value\n"
+									+ "// Use parseInt() to convert variables to integers etc"
+									+ "\n"
+									+ "function calculate(value) {\n"
+									+ "    // add your calculation here\n"
+									+ "    return 0; // return your calculated value\n"
+									+ "}");
+		txtJavaScript.setEnabled(chbxJS.isSelected());
+		setFont(this.field != null ? field.getFont() : null);
 	}
 //
 //	private String[] getFontsa() {
@@ -368,7 +432,7 @@ public class JFieldEditorPanel extends JPanel {
 	}
 
 	public String getFieldName() {
-		return this.field.getName();
+		return this.field != null ? this.field.getName() : null;
 	}
 
 }

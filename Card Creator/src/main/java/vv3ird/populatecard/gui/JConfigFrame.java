@@ -2,7 +2,6 @@ package vv3ird.populatecard.gui;
 
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
@@ -25,8 +24,12 @@ import javax.swing.SwingConstants;
 
 import vv3ird.populatecard.CardCreator;
 import vv3ird.populatecard.data.ParallelProcessing;
-import vv3ird.populatecard.data.Project;
 
+/**
+ * GUI to change the configuration settings for the project.
+ * @author VV3IRD
+ *
+ */
 public class JConfigFrame extends JDialog {
 
 	/**
@@ -42,22 +45,6 @@ public class JConfigFrame extends JDialog {
 	private JRadioButton rbPPCustom;
 	private JRadioButton rbPPCpuMinus1;
 	private JRadioButton rbPPSingleProcess;
-
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					JConfigFrame frame = new JConfigFrame(null);
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
 
 	/**
 	 * Create the frame.
@@ -77,7 +64,7 @@ public class JConfigFrame extends JDialog {
 		Component rigidArea_8 = Box.createRigidArea(new Dimension(5, 5));
 		contentPane.add(rigidArea_8);
 		
-		int selIndex = CardCreator.hasCurrentProject() && "\r\n".equalsIgnoreCase(CardCreator.getCurrentProject().getCsvRecordSeparator()) ? 1 : 0;
+		int selIndex = CardCreator.hasCurrentProject() && "\r\n".equalsIgnoreCase(CardCreator.getCsvRecordSeparator()) ? 1 : 0;
 		
 		JPanel pnGeneralConfig = new JPanel();
 		pnGeneralConfig.setBorder(null);
@@ -194,14 +181,13 @@ public class JConfigFrame extends JDialog {
 		JButton btnSave = new JButton("Ok");
 		btnSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				Project p = CardCreator.getCurrentProject();
-				if(p != null) {
-					char delim = tfCsvDelimiter.getText().length() > 0 ? tfCsvDelimiter.getText().charAt(0) : p.getCsvDelimiter();
-					char quote = tfCsvQuote.getText().length() > 0 ? tfCsvQuote.getText().charAt(0) : p.getCsvDelimiter();
+				if(CardCreator.hasCurrentProject()) {
+					char delim = tfCsvDelimiter.getText().length() > 0 ? tfCsvDelimiter.getText().charAt(0) : CardCreator.getCsvDelimiter();
+					char quote = tfCsvQuote.getText().length() > 0 ? tfCsvQuote.getText().charAt(0) : CardCreator.getCsvDelimiter();
 					String recordSep = cbCsvRecordSeparator.getSelectedIndex() == 0 ? "\r\n" : "\n";
-					p.setCsvDelimiter(delim);
-					p.setCsvQuote(quote);
-					p.setCsvRecordSeparator(recordSep);
+					CardCreator.setCsvDelimiter(delim);
+					CardCreator.setCsvQuote(quote);
+					CardCreator.setCsvRecordSeparator(recordSep);
 					ParallelProcessing pp = rbPPCpuMinus1.isSelected() ? ParallelProcessing.CPU_MINUS_ONE : rbPPSingleProcess.isSelected() ? ParallelProcessing.SINGLE_THREAD : ParallelProcessing.CUSTOM;
 					CardCreator.setParallelProcessing(pp, (Integer)spPPThreads.getValue());
 					JConfigFrame.this.setVisible(false);
@@ -269,7 +255,7 @@ public class JConfigFrame extends JDialog {
 		Box horizontalBox_2 = Box.createHorizontalBox();
 		hbCsvDelim.add(horizontalBox_2);
 		
-		tfCsvDelimiter = new JTextField(CardCreator.hasCurrentProject() ? String.valueOf(CardCreator.getCurrentProject().getCsvDelimiter()) : ";");
+		tfCsvDelimiter = new JTextField(CardCreator.hasCurrentProject() ? String.valueOf(CardCreator.getCsvDelimiter()) : ";");
 		horizontalBox_2.add(tfCsvDelimiter);
 		tfCsvDelimiter.setHorizontalAlignment(SwingConstants.CENTER);
 		tfCsvDelimiter.setColumns(10);
@@ -306,7 +292,7 @@ public class JConfigFrame extends JDialog {
 		Component rigidArea_4 = Box.createRigidArea(new Dimension(26, 20));
 		horizontalBox_4.add(rigidArea_4);
 		
-		tfCsvQuote = new JTextField(CardCreator.hasCurrentProject() ? String.valueOf(CardCreator.getCurrentProject().getCsvQuote()): "\"");
+		tfCsvQuote = new JTextField(CardCreator.hasCurrentProject() ? String.valueOf(CardCreator.getCsvQuote()): "\"");
 		tfCsvQuote.setSize(new Dimension(20, 20));
 		tfCsvQuote.setPreferredSize(new Dimension(20, 20));
 		tfCsvQuote.setMinimumSize(new Dimension(20, 20));
@@ -348,7 +334,7 @@ public class JConfigFrame extends JDialog {
 		horizontalBox_6.add(horizontalGlue_3);
 		
 		if(CardCreator.hasCurrentProject()) {
-			switch (CardCreator.getCurrentProject().getProcessingMode()) {
+			switch (CardCreator.getProcessingMode()) {
 			case CPU_MINUS_ONE:
 				rbPPCpuMinus1.setSelected(true);
 				break;
@@ -357,7 +343,7 @@ public class JConfigFrame extends JDialog {
 				break;
 			case CUSTOM:
 				rbPPCustom.setSelected(true);
-				spPPThreads.setValue(CardCreator.getCurrentProject().getCustomParallelProcessingThreads());
+				spPPThreads.setValue(CardCreator.getCustomParallelProcessingThreads());
 			
 			}
 		}

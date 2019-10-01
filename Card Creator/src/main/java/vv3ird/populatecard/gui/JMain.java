@@ -96,6 +96,7 @@ public class JMain extends JFrame {
 	private JButton btnLoadAlternateRear;
 	private JMenuItem mntmExportProject;
 	private JMenuItem mntmImportCsv;
+	private JMenuItem mntmImportCsv2;
 	private JMenuItem mntmSaveProject;
 	private JMenuItem mntmMapCsv;
 	private JMenuItem mntmConfiguration;
@@ -133,6 +134,7 @@ public class JMain extends JFrame {
 					JMain.this.setTitle("Create Cards: " + CardCreator.getCurrentProjecttName());
 					JMain.this.btnLoadFrontSide.setEnabled(true);
 					JMain.this.btnLoadRearSide.setEnabled(true);
+					JMain.this.btnLoadAlternateRear.setEnabled(true);
 					populateRecentProjects();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -320,7 +322,7 @@ public class JMain extends JFrame {
 		mntmMapFields.setEnabled(false);
 		mntmMapFields.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFieldMappingPanel cm = new JFieldMappingPanel(CardCreator.getCurrentProject());
+				JFieldMappingPanel cm = new JFieldMappingPanel();
 				boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map Fields", JOptionPane.OK_CANCEL_OPTION,
 						JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 				if (ok) {
@@ -395,7 +397,7 @@ public class JMain extends JFrame {
 					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 					chooser.setAcceptAllFileFilterUsed(false);
 					chooser.setDialogTitle("Choose a filename");
-					chooser.setFileFilter(new FileNameExtensionFilter("CardMapper Files", new String[] { "ttf" }));
+					chooser.setFileFilter(new FileNameExtensionFilter("Font Files", new String[] { "ttf", "otf" }));
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedProject = chooser.getSelectedFile().toPath();
@@ -416,7 +418,7 @@ public class JMain extends JFrame {
 		JMenu mnCsv = new JMenu("CSV");
 		menuBar.add(mnCsv);
 
-		mntmImportCsv = new JMenuItem("Import CSV");
+		mntmImportCsv = new JMenuItem("Import CSV, keep images external");
 		mntmImportCsv.setEnabled(false);
 		mntmImportCsv.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -433,8 +435,10 @@ public class JMain extends JFrame {
 					int res = chooser.showOpenDialog(JMain.this);
 					if (res == JFileChooser.APPROVE_OPTION) {
 						Path selectedCSV = chooser.getSelectedFile().toPath();
-						CSVParser parser = ProjectManager.openCsv(selectedCSV, CardCreator.getCurrentProject().getCSVFormat());
-						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), new ArrayList<>(CardCreator.getCsvHeader().keySet()), CardCreator.getFieldMappings());
+						CSVParser parser = ProjectManager.openCsv(selectedCSV, CardCreator.getCSVFormat());
+						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), 
+								new ArrayList<>(parser.getHeaderMap().keySet()), 
+								CardCreator.getFieldMappings());
 						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
 								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 						parser.close();
@@ -468,6 +472,61 @@ public class JMain extends JFrame {
 			}
 		});
 		mnCsv.add(mntmImportCsv);
+		
+		mntmImportCsv2 = new JMenuItem("Import CSV, integrate images");
+		mntmImportCsv2.setEnabled(false);
+		mntmImportCsv2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String cmDir = System.getProperty("user.dir") + File.separator + "csv";
+				try {
+					if (!Files.exists(Paths.get(cmDir)))
+						Files.createDirectories(Paths.get(cmDir));
+
+					JFileChooser chooser = new JFileChooser(cmDir);
+					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+					chooser.setAcceptAllFileFilterUsed(false);
+					chooser.setDialogTitle("Choose a filename");
+					chooser.setFileFilter(new FileNameExtensionFilter("CSV file", new String[] { "csv" }));
+					int res = chooser.showOpenDialog(JMain.this);
+					if (res == JFileChooser.APPROVE_OPTION) {
+						Path selectedCSV = chooser.getSelectedFile().toPath();
+						CSVParser parser = ProjectManager.openCsv(selectedCSV, CardCreator.getCSVFormat());
+						JCSVMapperPanel cm = new JCSVMapperPanel(CardCreator.getFields(), 
+								new ArrayList<>(parser.getHeaderMap().keySet()), 
+								CardCreator.getFieldMappings());
+						boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map CSV to Fields",
+								JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
+						parser.close();
+						// Import csv as a task so it wont interrupt running card creation process
+						Runnable payload = new Runnable() {
+							@Override
+							public void run() {
+								try {
+									CardCreator.importCsv(selectedCSV, true);
+									lblStatus.setText("Successfully imported csv-file " + selectedCSV.getFileName().toString());
+									if (ok) {
+										Map<String, String> mapping = cm.getMappings();
+										for (String field : mapping.keySet()) {
+											CardCreator.addMapping(field, mapping.get(field));
+										}
+									}
+									btnCreateCards.setEnabled(true);
+									mntmMapCsv.setEnabled(true);
+								} catch (IOException e) {
+									lblStatus.setText("An Error occured while importing the csv-file " + selectedCSV.getFileName().toString());
+									e.printStackTrace();
+								}
+							}
+						};
+						TaskScheduler.addTask("Import CSV data", payload, lblStatus);
+						
+					}
+				} catch (Exception e2) {
+					e2.printStackTrace();
+				}
+			}
+		});
+		mnCsv.add(mntmImportCsv2);
 
 		mntmMapCsv = new JMenuItem("Map CSV to fields");
 		mntmMapCsv.setEnabled(false);
@@ -848,6 +907,7 @@ public class JMain extends JFrame {
 		JMain.this.btnLoadAlternateRear.setEnabled(true);
 		JMain.this.mntmImportCmFile.setEnabled(true);
 		JMain.this.mntmImportCsv.setEnabled(true);
+		JMain.this.mntmImportCsv2.setEnabled(true);
 		JMain.this.mntmMapFields.setEnabled(true);
 		JMain.this.mntmImportFont.setEnabled(true);
 		JMain.this.mntmExportProject.setEnabled(true);
@@ -954,7 +1014,7 @@ public class JMain extends JFrame {
 	}
 
 	private void openFieldsEditor(boolean frontPanel) {
-		JFieldMappingPanel cm = new JFieldMappingPanel(CardCreator.getCurrentProject(), frontPanel);
+		JFieldMappingPanel cm = new JFieldMappingPanel(frontPanel);
 		boolean ok = JOptionPane.showConfirmDialog(JMain.this, cm, "Map Fields", JOptionPane.OK_CANCEL_OPTION,
 				JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
 		if (ok) {

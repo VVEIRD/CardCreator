@@ -16,7 +16,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
@@ -50,9 +49,13 @@ import vv3ird.populatecard.control.FieldEditor.Corner;
 import vv3ird.populatecard.data.Field;
 import vv3ird.populatecard.data.Field.CardSide;
 import vv3ird.populatecard.data.FieldPackage;
-import vv3ird.populatecard.data.Project;
 import javax.swing.JCheckBox;
 
+/**
+ * Panel to map Fields to the front and rear image of the card.
+ * @author wkiv894
+ *
+ */
 public class JFieldMappingPanel extends JPanel {
 
 	private static final long serialVersionUID = 6755160427559608684L;
@@ -98,13 +101,13 @@ public class JFieldMappingPanel extends JPanel {
 	/**
 	 * @wbp.parser.constructor
 	 */
-	public JFieldMappingPanel(Project p) {
-		this(p, true);
+	public JFieldMappingPanel() {
+		this(true);
 	}
 	
-	public JFieldMappingPanel(Project p, boolean frontPanel) {
-		BufferedImage frontImage = p.getFp().getFrontImage();
-		BufferedImage rearImage = p.getFp().getRearImage();
+	public JFieldMappingPanel(boolean frontPanel) {
+		BufferedImage frontImage = CardCreator.getFrontImage();
+		BufferedImage rearImage = CardCreator.getRearImage();
 		
 		int preferredWidth = frontImage.getWidth() < rearImage.getWidth() ? frontImage.getWidth() : rearImage.getWidth();
 		preferredWidth = preferredWidth < 1000 ? preferredWidth : 1000;
@@ -117,7 +120,8 @@ public class JFieldMappingPanel extends JPanel {
 		setMaximumSize(new Dimension(1000, 800));
 		contentPane = this;
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		this.fields.addAll(p.getFp().getFields().stream().map(f -> f.clone()).collect(Collectors.toList()));
+		
+		this.fields.addAll(CardCreator.getFields().stream().map(f -> f.clone()).collect(Collectors.toList()));
 		this.editor = new FieldEditor(this.fields);
 		contentPane.setLayout(new BorderLayout(0, 0));
 		// Front image
@@ -164,7 +168,7 @@ public class JFieldMappingPanel extends JPanel {
 						File f = chooser.getSelectedFile();
 						FieldPackage fPackage = new FieldPackage(front, rear);
 						fPackage.addFields(fields);
-						fPackage.setAlternateRearImage(p.getFp().getAlternateRearImage());
+						fPackage.setAlternateRearImage(CardCreator.getAlternateRearImage());
 						if (!f.getAbsolutePath().endsWith(".cm"))
 							f = new File(f.getAbsolutePath() + ".cm");
 						FieldPackage.save(fPackage, f.toPath());
@@ -406,6 +410,7 @@ public class JFieldMappingPanel extends JPanel {
 				fieldEditior.getField();
 				treeFields.repaint();
 				setImage(front, rear);
+				updatePreviewMode();
 			}
 		});
 		
